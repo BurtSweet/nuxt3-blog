@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { isDev, isPrerender } from "~/utils/nuxt";
-// import bg from "~/assets/image/outerwilds.jpg";
-import bg from "https://cloudreve.kylins.eu.org/f/kVFr/%E5%8D%9A%E5%AE%A2_%E7%8C%AB%E8%80%B3%E5%A8%98.png";
+import bg from "~/assets/image/outerwilds.jpg";
 import config from "~/config";
 
 const commitSha = computed(() => useRuntimeConfig().app.NUXT_ENV_CURRENT_GIT_SHA);
