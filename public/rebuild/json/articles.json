@@ -16,7 +16,8 @@
         "text": "github 下载地址",
         "url": "#id-%5Bgithub%E4%B8%8B%E8%BD%BD%E5%9C%B0%E5%9D%80%5D(https%3A%2F%2Fgithub.com%2Fnirui%2Fsshwifty%2Freleases)"
       }
-    ]
+    ],
+    "_show": true
   },
   {
     "title": "替换容器中的systemctl以获取权限",
@@ -29,7 +30,8 @@
     "id": 9854,
     "time": 1675937651730,
     "modifyTime": 1675937651730,
-    "encrypt": false
+    "encrypt": false,
+    "_show": true
   },
   {
     "title": "剑皇攻击 ",
@@ -88,20 +90,6 @@
         "url": "#id-%E4%B9%BE%E5%8D%A6%E5%85%AD%E9%BE%99"
       }
     ],
-    "_show": true
-  },
-  {
-    "title": "Alist Docker版本安装",
-    "menu": [],
-    "len": 1021,
-    "tags": [
-      "docker",
-      "alist"
-    ],
-    "id": 6968,
-    "time": 1666903248874,
-    "modifyTime": 1666903248874,
-    "encrypt": false,
     "_show": true
   },
   {
