@@ -8,7 +8,7 @@ const commitUrl = computed(() => `https://github.com/${config.githubName}/${conf
 const buildTime = ref<string>("$(inject:timestamp)");
 
 const paragraphs = [
-  "胸怀鸿鹄之志而生如蝼蚁“,
+  "胸怀鸿鹄之志而生如蝼蚁",
   "虽有不屈之心却命比纸"
 ];
 
