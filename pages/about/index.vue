@@ -8,8 +8,8 @@ const commitUrl = computed(() => `https://github.com/${config.githubName}/${conf
 const buildTime = ref<string>("$(inject:timestamp)");
 
 const paragraphs = [
-  "沧浪之水清兮，可以濯我缨；",
-  "沧浪之水浊兮，可以濯我足。"
+  "胸怀鸿鹄之志而生如蝼蚁“,
+  "虽有不屈之心却命比纸"
 ];
 
 onBeforeMount(async () => {
