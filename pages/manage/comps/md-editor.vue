@@ -5,7 +5,6 @@ import type { Ref, PropType } from "vue";
 import type { editor as MonacoEditor } from "monaco-editor";
 import { afterInsertHtml, parseMarkdown, initViewer } from "~/utils/nuxt";
 
-const localePath = useLocalePath();
 const props = defineProps({
   modelValue: { type: String, default: "" },
   disabled: { type: Boolean, default: false },
@@ -19,7 +18,7 @@ const emit = defineEmits(["update:modelValue", "preview"]);
 let editor: MonacoEditor.IStandaloneCodeEditor;
 
 const currentView = ref<"edit" | "preview" | "both">("both");
-const currentText = ref<string>("");
+const currentText = ref("");
 
 // sticker
 const stickersTranslate = {
@@ -28,22 +27,24 @@ const stickersTranslate = {
 };
 const stickersList = toRaw(useRuntimeConfig().public.stickers);
 const stickersTab = Object.keys(stickersList);
-const currentStickerTab = ref<string>(stickersTab[0]);
-const stickerTranslateY = computed<string>(() => {
+const currentStickerTab = ref(stickersTab[0]);
+const stickerTranslateY = computed(() => {
   return `translateY(-${
     (stickersTab.indexOf(currentStickerTab.value) * 100) / stickersTab.length
   }%)`;
 });
-const showStickers = ref<boolean>(false);
+const showStickers = ref(false);
 const insertSticker = (text: string) => {
   if (editor) {
     editor.trigger("keyboard", "type", { text });
   }
 };
 
+const showPreviewContents = ref(false);
+
 // resize
 const root = ref<HTMLElement>();
-const leftSideWidth = ref<number>(0);
+const leftSideWidth = ref(0);
 const lisetenResize = throttle((e: MouseEvent | TouchEvent) => {
   const x = e instanceof MouseEvent ? e.x : e.touches[0].clientX;
   const width = x - root.value!.getBoundingClientRect().x;
@@ -120,25 +121,26 @@ watch(
 
 // md改变时，更新html
 const markdownRef = ref<HTMLElement>();
-const currentHtml = ref<string>("");
-watch(
-  currentText,
-  async () => {
-    currentHtml.value = await parseMarkdown(currentText.value);
-    nextTick(() => {
-      if (markdownRef.value) {
-        afterInsertHtml(markdownRef.value, true);
-      }
-    });
-  },
-  { immediate: true }
-);
+let destroyFn: ReturnType<typeof afterInsertHtml>;
+const currentHtml = ref("");
+const currentMenu = ref<Awaited<ReturnType<typeof parseMarkdown>>["menu"]>([]);
+watch(currentText, async () => {
+  const result = (await parseMarkdown(currentText.value));
+  currentHtml.value = result.md;
+  currentMenu.value = result.menu;
+  setTimeout(() => {
+    if (markdownRef.value) {
+      destroyFn = afterInsertHtml(markdownRef.value, true);
+    }
+  });
+}, { immediate: true });
 // 把htmlRef元素传给parent
 props.getHtml(markdownRef);
 
 onMounted(initEditor);
 onBeforeUnmount(() => {
   editor?.dispose();
+  destroyFn.forEach(fn => fn());
 });
 initViewer(markdownRef);
 </script>
@@ -149,7 +151,7 @@ initViewer(markdownRef);
       <svg-icon name="loading" />
     </div>
     <div class="editor-head flex">
-      <a :title="$t('add-sticker')" @click="showStickers = true">
+      <a class="add-sticker" :title="$t('add-sticker')" @click="showStickers = true">
         <img src="/sticker/yellow-face/18.png">
         <common-dropdown v-model:show="showStickers">
           <div class="s100 flex">
@@ -186,9 +188,26 @@ initViewer(markdownRef);
           </div>
         </common-dropdown>
       </a>
-      <nuxt-link v-if="!single" :title="$t('markdown-ref')" :to="localePath('/manage/md-ref')" target="_blank">
+      <nuxt-link v-if="!single" :title="$t('markdown-ref')" :to="'/manage/md-ref'" target="_blank">
         <svg-icon name="markdown" />
       </nuxt-link>
+      <a class="preview-contents" :title="$t('contents')" @click="currentMenu.length && (showPreviewContents = true)">
+        <svg-icon name="preview-contents" />
+        <common-dropdown v-model:show="showPreviewContents">
+          <div class="s100 flex">
+            <ol>
+              <li v-for="(anchor, idx) in currentMenu" :key="idx">
+                <a
+                  :class="[anchor.size, 'flex']"
+                  :title="anchor.text"
+                >
+                  <span v-html="anchor.text" />
+                </a>
+              </li>
+            </ol>
+          </div>
+        </common-dropdown>
+      </a>
       <a v-if="!single" class="preview" :title="$t('preview')" @click="emit('preview')"><svg-icon name="preview" /></a>
       <a
         class="split"
@@ -280,6 +299,10 @@ initViewer(markdownRef);
     }
   }
 
+  >div {
+    width: 100%;
+  }
+
   .editor-head {
     background: #fefffe;
 
@@ -287,6 +310,7 @@ initViewer(markdownRef);
       background: rgb(39 39 39);
     }
 
+    box-sizing: border-box;
     position: relative;
     padding: 8px 10px;
     border-top-right-radius: 4px;
@@ -333,119 +357,154 @@ initViewer(markdownRef);
         @include square(25px);
       }
 
-      &.preview {
-        margin-left: auto;
-      }
-    }
+      &.add-sticker {
+        .common-dropdown {
+          left: 10px;
+          overflow: hidden;
+          width: 400px;
+          height: 200px;
+          cursor: initial;
 
-    .common-dropdown {
-      left: 10px;
-      overflow: hidden;
-      width: 400px;
-      height: 200px;
-      cursor: initial;
+          @include mobile {
+            width: calc(100% - 20px);
+          }
 
-      @include mobile {
-        width: calc(100% - 20px);
-      }
+          .stickers-title {
+            height: 100%;
 
-      .stickers-title {
-        height: 100%;
+            span {
+              font-size: f-size(0.75);
+              padding: 0 5px;
+              word-break: break-all;
+              height: 50%;
+              display: flex;
+              align-items: center;
+              cursor: pointer;
+              transition: $common-transition;
 
-        span {
-          font-size: f-size(0.75);
-          padding: 0 5px;
-          word-break: break-all;
-          height: 50%;
-          display: flex;
-          align-items: center;
-          cursor: pointer;
-          transition: $common-transition;
+              @include dark-mode {
+                background: rgb(99 99 99);
 
-          @include dark-mode {
-            background: rgb(99 99 99);
+                &:hover {
+                  background: rgb(68 68 68);
+                }
 
-            &:hover {
-              background: rgb(68 68 68);
-            }
+                &.active {
+                  background: rgb(26 26 26);
+                  color: white;
+                }
+              }
 
-            &.active {
-              background: rgb(26 26 26);
-              color: white;
+              &:hover {
+                background: rgb(230 230 230);
+              }
+
+              &.active {
+                background: rgb(108 108 108);
+                color: white;
+              }
             }
           }
 
-          &:hover {
-            background: rgb(230 230 230);
-          }
+          .stickers-container {
+            height: 100%;
+            overflow: hidden;
 
-          &.active {
-            background: rgb(108 108 108);
-            color: white;
+            > .inner {
+              transition: $common-transition;
+              transform: translateY(0);
+
+              > div {
+                height: 200px;
+                overflow-y: auto;
+
+                > div {
+                  display: flex;
+                  flex-wrap: wrap;
+                  border: 1px solid #ddd;
+
+                  @include dark-mode {
+                    border-color: rgb(180 180 180);
+                  }
+
+                  border-right: none;
+                  border-bottom: none;
+
+                  span {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+
+                    @include square(42px);
+
+                    transition: $common-transition;
+                    border: 1px solid #ddd;
+
+                    @include dark-mode {
+                      border-color: rgb(117 117 117);
+                    }
+
+                    border-left: none;
+                    border-top: none;
+
+                    &:hover {
+                      background: rgb(228 228 228);
+
+                      @include dark-mode {
+                        background: rgb(140 140 140);
+                      }
+
+                      img {
+                        transform: scale(1.1);
+                      }
+                    }
+
+                    img {
+                      @include square(80%);
+
+                      object-fit: contain;
+                      transition: $common-transition;
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
 
-      .stickers-container {
-        height: 100%;
-        overflow: hidden;
+      &.preview-contents {
+        margin-left: auto;
 
-        > .inner {
-          transition: $common-transition;
-          transform: translateY(0);
+        .common-dropdown {
+          right: 10px;
+          overflow: auto;
+          max-width: 300px;
+          max-height: 90vh;
+          cursor: initial;
 
-          > div {
-            height: 200px;
-            overflow-y: auto;
+          ol {
+            box-sizing: border-box;
+            list-style: none;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
 
-            > div {
-              display: flex;
-              flex-wrap: wrap;
-              border: 1px solid #ddd;
+            li:not(:last-of-type) {
+              margin-bottom: 8px;
+            }
 
-              @include dark-mode {
-                border-color: rgb(180 180 180);
+            a {
+              &.small {
+                padding-left: 12px;
+                font-size: 0.9em;
               }
 
-              border-right: none;
-              border-bottom: none;
-
               span {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
+                @include textoverflow(1);
 
-                @include square(42px);
-
-                transition: $common-transition;
-                border: 1px solid #ddd;
-
-                @include dark-mode {
-                  border-color: rgb(117 117 117);
-                }
-
-                border-left: none;
-                border-top: none;
-
-                &:hover {
-                  background: rgb(228 228 228);
-
-                  @include dark-mode {
-                    background: rgb(140 140 140);
-                  }
-
-                  img {
-                    transform: scale(1.1);
-                  }
-                }
-
-                img {
-                  @include square(80%);
-
-                  object-fit: contain;
-                  transition: $common-transition;
-                }
+                white-space: nowrap;
               }
             }
           }

@@ -1,15 +1,18 @@
-<script setup lang="ts">
+<script setup lang="tsx">
 import type Headroom from "headroom.js";
-import { inBrowser, isPrerender, calcRocketUrl } from "~/utils/nuxt";
-import { i18nLocales, githubRepoUrl } from "~/utils/common";
-import LayoutMenu from "~/pages/templates/layout-menu.vue";
+import NuxtLink from "~/node_modules/nuxt/dist/app/components/nuxt-link";
+import { inBrowser, isPrerender, calcRocketUrl, translateT, useHackKey } from "~/utils/nuxt";
+import { i18nLocales, githubRepoUrl, I18nCode, HeaderTabs } from "~/utils/common";
 import config from "~/config";
 
-const i18n = useI18n();
+const hackKey = useHackKey();
+const { i18nCode, changeI18n } = useI18nCode();
 const { themeMode, toggleThemeMode } = useThemeMode();
-const localePath = useLocalePath();
 const pageLoading = useLoading();
 const route = useRoute();
+const activeRoute = computed(() => {
+  return route.path.split("/")[1] || HeaderTabs[0].url.substring(1);
+});
 const footerDomain = inBrowser ? window.location.hostname : "";
 
 // mobile menu
@@ -20,15 +23,39 @@ watch(isMobile, () => {
     menuShow.value = false;
   });
 });
+const LayoutMenu = defineComponent({
+  // XXX why need?
+  components: {
+    "nuxt-link": NuxtLink
+  },
+  render: () =>
+    <div class={`layout-menu flex ${isMobile.value ? "in-mobile" : ""}`}>
+      {
+        HeaderTabs.map(item => (
+          <nuxt-link
+            key={item.url}
+            class={{ item: true, active: activeRoute.value === item.url.substring(1) }}
+            to={item.url}
+          >
+            { translateT(item.name) }
+            <span />
+            <span />
+            <span />
+            <span />
+          </nuxt-link>
+        ))
+      }
+    </div>
+});
 
 const showI18n = ref<boolean>(false);
-const setLocale = (locale: string) => {
-  i18n.setLocale(locale);
+const setLocale = (locale: I18nCode) => {
+  changeI18n(locale);
   showI18n.value = false;
 };
 
 const inAbout = computed(() => {
-  return route.path.startsWith(localePath("/about"));
+  return route.path.startsWith("/about");
 });
 
 const openEdit = computed(() => {
@@ -80,8 +107,8 @@ const isFirst = ref(true);
           <div class="i18n-select">
             <div
               v-for="locale of i18nLocales"
-              :key="locale.code"
-              :class="{ active: i18n.locale.value===locale.code}"
+              :key="locale.code + hackKey"
+              :class="{ active: i18nCode===locale.code}"
               @click="setLocale(locale.code)"
             >
               {{ locale.name }}
@@ -94,7 +121,7 @@ const isFirst = ref(true);
         v-if="!isPrerender"
         class="mode"
         :class="themeMode"
-        :title="$t('switch-mode', [$t(`mode-${themeMode}`)])"
+        :title="$t('switch-mode', [$t(`mode-${themeMode === 'light' ? 'dark' : 'light'}`)])"
         @click="toggleTheme"
       >
         <span>
@@ -113,7 +140,7 @@ const isFirst = ref(true);
         <svg-icon name="github" />
       </a>
       <div v-else class="home go-manage flex">
-        <nuxt-link :to="localePath(openEdit)" title="🚀">
+        <nuxt-link :to="openEdit" title="🚀">
           <svg-icon name="rocket" />
         </nuxt-link>
         <div class="pwd flex" :class="{valid: encryptor.passwdCorrect.value}" :title="$t('passwd')" @click="showPwdModal = true">
@@ -121,11 +148,11 @@ const isFirst = ref(true);
         </div>
       </div>
       <sub />
-      <nuxt-link class="about" :to="localePath('/about')" :title="$t('about')">
+      <nuxt-link class="about" :to="inAbout ? '/' : '/about'" :title="$t('about')">
         <img class="s100" src="/icon.png" :alt="$t('avatar')">
       </nuxt-link>
-      <span v-show="!!pageLoading.loadingState.value" class="loading" :style="{width: `${pageLoading.loadingState.value}%`}" />
     </nav>
+    <span v-show="!!pageLoading.loadingState.value" class="loading" :style="{width: `${pageLoading.loadingState.value}%`}" />
     <section id="body">
       <slot />
     </section>
@@ -202,6 +229,17 @@ const isFirst = ref(true);
         animation-name: light-dark;
       }
     }
+  }
+
+  >.loading {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 3px;
+    z-index: $z-index-header-loading;
+    background: $theme-color;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 10px $theme-color;
   }
 }
 
@@ -475,16 +513,6 @@ const isFirst = ref(true);
     &:hover {
       opacity: 1;
     }
-  }
-
-  >.loading {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 3px;
-    z-index: 2;
-    background: $theme-color;
-    transition: width 0.1s linear;
   }
 
   &:not(.headroom--pinned).headroom--not-top {

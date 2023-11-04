@@ -3,8 +3,12 @@ import { CommonItem, AllKeys, HeaderTabUrl, ModalContainerId } from "~/utils/com
 import { getLocalStorage, setLocalStorage, assignItem, translate, translateT, useCurrentTab, notify } from "~/utils/nuxt";
 import CommonModal from "~/components/common-modal.vue";
 
-export function randomId (exist: CommonItem[] = [], len = 4) {
-  const ids: number[] = exist.map(item => item.id);
+export function randomId (exist: CommonItem[] = []) {
+  const ids = exist.map(item => item.id);
+  let len = ids.length ? Math.max(...ids).toString().length : 4;
+  if (ids.length > 10 ** (len - 1) * 0.6) {
+    len += 1;
+  }
   while (true) {
     let id: string | number = "";
     for (let i = 0; i < len; i++) {
@@ -96,8 +100,9 @@ export function loadOrDumpDraft (key: string, type: "load" | "dump", item: Commo
  */
 export function useHasModified<T extends CommonItem> ({ item, origin }: { item: T, origin: T, }) {
   const markdownModified = ref(false);
+  const keys = keysOfCommonItem();
   // 目前只有tag和images这几种简单数据，可以直接进行比较
-  const hasModified = computed(() => markdownModified.value || keysOfCommonItem()
+  const hasModified = computed(() => markdownModified.value || keys
     .filter(k => typeof item[k] !== "undefined")
     .some((k) => {
       if (k === "images") {

@@ -73,7 +73,7 @@ Goto https://github.com/settings/tokens/new, check **repo** scopes, then click `
 - [ ] pulling update of upsteam github repo
 - [ ] IV for AES encryption
 - [x] block level encryption
-- [ ] SSR for self-hosting
+- [x] SSR for self-hosting([reference](https://blog.yunyuyuan.net/articles/8346))
 - [ ] support cloudflare page,netlify and others
 
 # Project Structure
@@ -87,20 +87,35 @@ Goto https://github.com/settings/tokens/new, check **repo** scopes, then click `
 * `/vite-plugins` vite plugins.
 * `/i18n` i18n message files.
 * `/layouts` nuxt layout files.
-* `/lib` functions used by `/api`.
 * `/pages` all views page.
 * `/plugins` nuxt plugin files.
 * `/public`
   * `/rebuild` all blog data.
   * `/sticker` all stickers for markdown.
-* `/scripts`
-  * `/generate.ts` script for `npm run generate`.
-  * `/change-pwd.ts` script for `npm run chpwd`, run it locally when you want to change your password.
+* `/scripts` scripts for Gulp.
+* `/server` api server, only works for SSR.
 * `/utils`
+  * `/api` functions used by `/server`.
   * `/nuxt` common codes of nuxt.
   * `/common` common codes of javascript.
 * `/config.ts` blog configurations, your must change it.
 
+
+# Node scripts
+```json5
+"scripts": {
+  "build": "nuxt build", // Compile for SSR
+  "dev": "nuxt dev", // Development
+  "generate": "nuxt generate", // Compile to static
+  "chpwd": "gulp change-passwd", // Globally change password
+  "genimg": "gulp generate-image-map", // Collect site-wide images, output to img.json
+  "downimg": "gulp download-image", // Read img.json, download all images to imgs/
+  "subimg": "gulp substitute-image", // Read img.json, replace with new images (before running this script, please modify newUrl in img.json to the URL to be replaced)
+  "lint": "eslint --fix --ext .ts,vue --ignore-path .gitignore .", // Execute eslint
+  "preview": "nuxt preview", // Preview the compiled website
+  "prepare": "husky install" // Install Husky
+}
+```
 
 # Changelog
 

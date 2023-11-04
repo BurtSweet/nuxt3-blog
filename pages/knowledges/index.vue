@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { formatTime, literalTime, useListPage } from "~/utils/nuxt";
+import { formatTime, literalTime, useHackKey, useListPage } from "~/utils/nuxt";
 import { KnowledgeItem, KnowledgeTabs, KnowledgeTabsList } from "~/utils/common";
 
-const localePath = useLocalePath();
-const { list: knowledgeList, pending } = useListPage<KnowledgeItem>();
+const hackKey = useHackKey();
+
+const knowledgeList = await useListPage<KnowledgeItem>();
 
 const currentTab = computed(() => (useRoute().query.type as string) || "");
 const isAll = computed(
@@ -30,36 +31,31 @@ function goTo (tab?: string) {
   navigateTo({ query: { type: tab } }, { replace: true });
 }
 
-// FIXME
-const un = ref(0);
-onMounted(() => {
-  un.value += 1;
-});
 </script>
 
 <template>
   <div class="knowledge-list">
     <nav class="flex">
-      <span v-for="tab in tabs" :key="tab.key + un" :class="{ active: tab.key === currentTab }" @click="goTo(tab.key)">
+      <span v-for="tab in tabs" :key="tab.key + hackKey" :class="{ active: tab.active }" @click="goTo(tab.key)">
         {{ $T(tab.name) }}
         <b>{{ getFilteredListLength(tab.key) }}</b>
       </span>
     </nav>
     <div class="body flexc">
-      <common-loading v-show="pending" :show-in-first="false" />
       <div v-if="!filteredListEmpty">
         <nuxt-link
           v-for="item in filteredList"
           v-show="item._show"
           :key="item.id"
-          :to="localePath('/knowledges/' + item.id)"
+          no-prefetch
+          :to="'/knowledges/' + item.id"
         >
           <svg-icon :name="item.type" />
           <span>《<b>{{ item.title }}</b>》</span>
           <time :title="formatTime(item.time)">{{ literalTime(item.time) }}</time>
         </nuxt-link>
       </div>
-      <div v-else-if="!pending" class="empty">
+      <div v-else class="empty">
         {{ $T('nothing-here') }}
       </div>
     </div>
@@ -197,10 +193,11 @@ $space: 16px;
 
         b {
           font-size: f-size();
-          color: $theme-color-darken;
+          color: black;
+          font-weight: 500;
 
           @include dark-mode {
-            color: $theme-color-lighten;
+            color: white;
           }
 
           margin: 0 4px;

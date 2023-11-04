@@ -1,5 +1,5 @@
 import type cryptoJS from "crypto-js";
-import { notify, translate } from "~/utils/nuxt";
+import { notify, isPrerender, translate } from "~/utils/nuxt";
 import { DecryptFunction } from "~/utils/common";
 
 let CryptoJS: typeof cryptoJS;
@@ -15,6 +15,11 @@ export const useEncryptor = () => {
   const passwdCorrect = useState<boolean>("passwd-correct", () => false);
   /** 同一个错误密码只会提示一次错误信息 */
   const incorrectPwd = useState<string>("incorrect-passwd", () => "");
+
+  const cancelFnList: (() => void)[] = [];
+  onBeforeUnmount(() => {
+    cancelFnList.forEach(fn => fn());
+  });
 
   const encrypt: DecryptFunction = async (s: string) => {
     if (!s) {
@@ -35,6 +40,7 @@ export const useEncryptor = () => {
   // 解密操作是异步的，因为CryptoJs只有在使用时才被import。缺点是很多地方要改成await
   const decrypt: DecryptFunction = async (s: string) => {
     if (!s) {
+      passwdCorrect.value = false;
       return s;
     }
     try {
@@ -72,13 +78,17 @@ export const useEncryptor = () => {
   const decryptOrWatchToDecrypt = async (
     callback: (_decrypt: DecryptFunction) => Promise<void>,
     firstIsFailed: () => any = () => undefined
-  ): Promise<() => void> => {
+  ): Promise<void> => {
+    // prerender时默认解密失败，且不再监听
+    if (isPrerender) {
+      firstIsFailed();
+      return;
+    }
     try {
       if (!usePasswd.value) {
         throw new Error(translate("need-passwd"));
       }
       await callback(decrypt);
-      return () => undefined;
     } catch (e) {
       firstIsFailed();
       const cancel = watch(usePasswd, async (pwd) => {
@@ -90,7 +100,7 @@ export const useEncryptor = () => {
           cancel();
         } catch {}
       });
-      return cancel;
+      cancelFnList.push(cancel);
     }
   };
 

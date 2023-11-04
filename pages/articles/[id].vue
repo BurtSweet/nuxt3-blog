@@ -1,19 +1,9 @@
 <script setup lang="ts">
-import config from "~/config";
 import { addScrollListener, rmScrollListener, ArticleItem } from "~/utils/common";
-import { getLocalStorage, rmLocalStorage, setLocalStorage, initViewer, isPrerender, useContentPage, useComment, watchUntil } from "~/utils/nuxt";
+import { getLocalStorage, rmLocalStorage, setLocalStorage, initViewer, isPrerender, useContentPage, useComment, watchUntil, useCommonSEOTitle } from "~/utils/nuxt";
 
-const { item, tabUrl, modifyTime, htmlContent, markdownRef, mdPending, htmlInserted } = useContentPage<ArticleItem>();
-
-const currentMenu = useCurrentMenu();
-
-useHead({
-  title: computed(() => item.title + config.SEO_title)
-});
-useSeoMeta({
-  ogTitle: computed(() => item.title)
-});
-
+const { item, tabUrl, modifyTime, menuItems, htmlContent, markdownRef, htmlInserted } = await useContentPage<ArticleItem>();
+useCommonSEOTitle(computed(() => item.title), computed(() => item.tags));
 const activeAnchor = ref<string>();
 
 const hideMenu = ref(!!getLocalStorage("hideMenu"));
@@ -31,34 +21,32 @@ const listenAnchor = () => {
     for (const link of links) {
       if (link.getBoundingClientRect().y <= 52) {
         const hash = link.getAttribute("href");
-        activeAnchor.value = currentMenu.value.find(anchor => anchor.url === hash?.slice(1))?.url;
+        activeAnchor.value = menuItems.value.find(anchor => anchor.url === hash?.slice(1))?.url;
         return;
       }
     }
     // 未找到
-    activeAnchor.value = currentMenu.value[0].url;
+    activeAnchor.value = menuItems.value[0]?.url;
   } catch {}
 };
 
 if (!isPrerender) {
   onMounted(() => {
-    watchUntil(mdPending, () => {
-      const hash = useRoute().hash;
-      nextTick(() => {
-        if (hash) {
-          watchUntil(htmlInserted, () => {
-            window.scrollTo({
-              top: document
-                .getElementById(hash.slice(1))
-                ?.getBoundingClientRect().y
-            });
-          }, { immediate: true }, "boolean", "cancelAfterUntil");
-        } else {
-          listenAnchor();
-        }
-        addScrollListener(listenAnchor);
-      });
-    }, { immediate: true }, "boolean", "cancelAfterUntil");
+    const hash = useRoute().hash;
+    nextTick(() => {
+      if (hash) {
+        watchUntil(htmlInserted, () => {
+          window.scrollTo({
+            top: document
+              .getElementById(hash.slice(1))
+              ?.getBoundingClientRect().y
+          });
+        }, { immediate: true }, "boolean", "cancelAfterUntil");
+      } else {
+        listenAnchor();
+      }
+      addScrollListener(listenAnchor);
+    });
   });
 }
 
@@ -75,7 +63,6 @@ initViewer(root);
     <div class="captain w100" :class="{'has-comment': hasComment}">
       <div class="article-container">
         <h1>{{ item.title }}</h1>
-        <common-loading v-show="mdPending" :show-in-first="false" />
         <div ref="viewerContainer" class="html-container">
           <article
             ref="markdownRef"
@@ -104,12 +91,12 @@ initViewer(root);
           </span>
         </div>
       </div>
-      <div v-if="currentMenu.length" class="menu flexc" :class="{compact: hideMenu}">
+      <div v-if="menuItems.length" class="menu flexc" :class="{compact: hideMenu}">
         <span class="toggle flex" :title="$t((hideMenu ? 'unfold':'fold')+'-menu')" @click="hideMenu = !hideMenu">
           <svg-icon name="up" />
         </span>
         <ol>
-          <li v-for="(anchor, idx) in currentMenu" :key="idx">
+          <li v-for="(anchor, idx) in menuItems" :key="idx">
             <a
               :href="'#'+anchor.url"
               :class="[anchor.size, { active: activeAnchor === anchor.url }]"

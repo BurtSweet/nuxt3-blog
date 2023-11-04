@@ -1,3 +1,21 @@
+## 2023.09.13
+* Add Drone cronjob for backup img.
+
+## 2023.09.09
+* Add [Drone](https://drone.io) CI/CD support.
+
+## 2023.09.06
+* Use `/server` to handle api request.
+* No longer use `useAsyncData`.
+* Update nuxt to `3.7`.
+
+## 2023.08.20
+* Use `useAsyncData` for a better page initialization experience.
+
+## 2023.08.11
+* Update nuxt to `3.6`.
+* Remove `@nuxtjs/i18n`, use a series of simple functions to achieve i18n functionality.
+
 ## 2023.06.14
 * Add `katex` for mathematic formula markdown syntax.
 

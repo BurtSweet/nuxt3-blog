@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import type { Ref } from "vue";
 import ManageContentEdit from "~/pages/manage/comps/manage-content-edit.vue";
 import { ArticleItem } from "~/utils/common";
 
@@ -28,13 +27,8 @@ const toggleTag = (tag: string) => {
   calcTagsList();
 };
 
-const preProcessItem = (item: ArticleItem, list: Ref<ArticleItem[]>) => {
-  const cancelTags = watch(list, (lis) => {
-    try {
-      lis.forEach(item => item.tags.forEach(t => allTags.add(t)));
-      cancelTags();
-    } catch {}
-  }, { immediate: true });
+const preProcessItem = (item: ArticleItem, list: ArticleItem[]) => {
+  list.forEach(item => item.tags.forEach(t => allTags.add(t)));
   watch(item.tags, (tags) => {
     inputTags.value = tags.join(",");
     calcTagsList();
@@ -63,7 +57,7 @@ const processContent = (md: string, _html: HTMLElement, item: ArticleItem) => {
           <b>{{ $T('title') }}</b>
           <svg-icon name="title" />
         </span>
-        <input v-model="item.title" :disabled="disabled">
+        <input v-model="item.title" :placeholder="$t('please-input')" :disabled="disabled">
       </template>
       <template #tags="{ disabled, item }">
         <span>

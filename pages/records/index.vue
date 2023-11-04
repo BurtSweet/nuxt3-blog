@@ -2,7 +2,7 @@
 import { RecordItem, getNowDayjs } from "~/utils/common";
 import { formatTime, useListPage } from "~/utils/nuxt";
 
-const { list: recordList, pending } = useListPage<RecordItem>();
+const recordList = await useListPage<RecordItem>();
 
 const years = computed(() => {
   const result: {
@@ -28,7 +28,6 @@ const years = computed(() => {
 
 <template>
   <div class="record-list">
-    <common-loading v-show="pending" :show-in-first="false" />
     <ul v-if="years.length">
       <li v-for="year in years" v-show="year.items.some(item => item._show)" :key="year.year">
         <h2>{{ year.year }}</h2>
@@ -37,8 +36,9 @@ const years = computed(() => {
             <b :title="formatTime(item.time)">{{
               formatTime(item.time, 'month')
             }}</b>
-            <NuxtLink
+            <nuxt-link
               :class="{ multiple: item.images.length > 1 }"
+              no-prefetch
               :to="'/records/' + item.id"
             >
               <the-lazy-img
@@ -46,12 +46,12 @@ const years = computed(() => {
                 :src="item.images[0]?.src ?? 'no-poster'"
                 :retry="false"
               />
-            </NuxtLink>
+            </nuxt-link>
           </div>
         </div>
       </li>
     </ul>
-    <div v-else v-show="!pending" class="empty">
+    <div v-else class="empty">
       {{ $T('nothing-here') }}
     </div>
   </div>

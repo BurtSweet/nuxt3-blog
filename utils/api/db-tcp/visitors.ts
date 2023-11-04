@@ -1,8 +1,8 @@
 import config from "../../../config";
-import { HeaderTabUrl } from "../../../utils/common";
+import { HeaderTabUrl } from "../../common";
 import { getCollection } from "./mongodb";
 
-export type VisitorsDb = {
+type VisitorsDb = {
   nid: number,
   ntype: HeaderTabUrl,
   nvisitors?: number,
@@ -33,8 +33,8 @@ export async function increaseVisitors ({ id, type, inc }: {id: number, type: He
       nvisitors: incN
     }
   }, sqlOptions);
-  if (result.value) {
-    return result.value.nvisitors! + incN;
+  if (result) {
+    return result.nvisitors! + incN;
   } else {
     await collection.insertOne({
       ...preset,

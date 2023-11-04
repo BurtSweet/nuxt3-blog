@@ -1,12 +1,11 @@
 import gulp from "gulp";
 import chpwd from "./change-pwd";
-import generate from "./generate";
 import genImgMap from "./generate-img-map";
 import subImg from "./substitute-img";
 import downloadImg from "./download-img";
 
 gulp.task("generate-image-map", async (cb) => {
-  await genImgMap();
+  await genImgMap(process.env.NB_PASSWD, process.env.NB_IMG_REGEX);
   cb();
 });
 
@@ -22,10 +21,5 @@ gulp.task("substitute-image", async (cb) => {
 
 gulp.task("change-passwd", async (cb) => {
   await chpwd();
-  cb();
-});
-
-gulp.task("generate", async (cb) => {
-  await generate();
   cb();
 });

@@ -1,9 +1,12 @@
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin((app) => {
   const router = useRouter();
   const loading = useLoading();
   const firstLoad = useFirstLoad();
   let index = 0;
-  router.beforeEach(() => {
+  router.beforeEach((to, from) => {
+    if (to.path === from.path) {
+      return;
+    }
     if (index < 2) {
       index += 1;
     }
@@ -13,7 +16,7 @@ export default defineNuxtPlugin(() => {
     loading.start();
   });
 
-  router.afterEach(() => {
+  app.hook("page:finish", () => {
     loading.finish();
   });
 });

@@ -5,10 +5,6 @@ export default defineNuxtPlugin((app: any) => {
     return { left: 0, top: 0 };
   };
 
-  app.provide("sameSha", computed(() => {
-    return useCorrectSha().value === useRuntimeConfig().app.NUXT_ENV_CURRENT_GIT_SHA;
-  }));
-
   initScrollTrigger();
   // init theme
   document.body.setAttribute(
@@ -37,4 +33,11 @@ export default defineNuxtPlugin((app: any) => {
   fragment.appendChild(svgContainer);
 
   document.body.appendChild(fragment);
+  return {
+    provide: {
+      sameSha: computed(() => {
+        return useCorrectSha().value === useRuntimeConfig().app.NUXT_ENV_CURRENT_GIT_SHA;
+      })
+    }
+  };
 });

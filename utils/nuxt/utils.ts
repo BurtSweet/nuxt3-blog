@@ -1,81 +1,46 @@
-import fs from "fs";
-import type { Ref, WatchOptions } from "vue";
-import { AllKeys, allLocales, CommonItem, HeaderTabs, githubRepoUrl, HeaderTabUrl, getUniqueId, escapeNewLine } from "~/utils/common";
-import { inBrowser, isDev, isPrerender } from "~/utils/nuxt";
+import type { WatchOptions } from "vue";
+import { AllKeys, CommonItem, HeaderTabs, githubRepoUrl, HeaderTabUrl, getUniqueId } from "~/utils/common";
+import { inBrowser, isDev } from "~/utils/nuxt";
 import config from "~/config";
 
-const timestamp = () => useRuntimeConfig().public.timestamp;
-
-type returnType<T> = {
-  data: {
-    value: T
-  },
-  pending: Ref<boolean>
-}
-
-export const fetchList = <T extends CommonItem>(tab: HeaderTabUrl) => {
-  if (isPrerender) {
-    return {
-      data: {
-        value: JSON.parse(fs.readFileSync(`./public/rebuild/json${tab}.json`).toString()) as T[]
-      },
-      pending: ref(true)
-    };
-  }
-  return fetchListManage<T>(tab);
-};
-
-export const fetchListManage = <T extends CommonItem>(tab: HeaderTabUrl) => {
-  return useFetch<T[]>(`/rebuild/json${tab}.json?s=${timestamp()}`, {
-    key: process.env.NODE_ENV + tab,
-    default: () => []
-  }) as returnType<T[]>;
-};
-
-export const fetchMd = (tab: HeaderTabUrl, id: string) => {
-  if (isPrerender) {
-    return {
-      data: {
-        value: escapeNewLine(fs.readFileSync(`./public/rebuild${tab}/${id}.md`).toString())
-      },
-      pending: ref(true)
-    };
-  }
-  return fetchMdManage(tab, id);
-};
-
-export const fetchMdManage = (tab: HeaderTabUrl, id: string) => {
-  return useFetch<string>(`/rebuild${tab}/${id}.md?s=${timestamp()}`, {
-    key: process.env.NODE_ENV + `${tab}/${id}`,
-    transform: (v: string) => escapeNewLine(v),
-    default: () => ""
+// XXX 在mount时更新一下key，防止SSG里v-for产生的元素，在client里被vue忽略
+export const useHackKey = () => {
+  const key = ref(1);
+  onMounted(() => {
+    key.value += 1;
   });
+  return key;
 };
 
 export function useCurrentTab () {
-  return HeaderTabs.find(tab => useUnlocalePath(useRoute().path).includes(tab.url))!;
+  return HeaderTabs.find(tab => useRoute().path.includes(tab.url)) || HeaderTabs[0];
 }
 
-export function useUnlocalePath (s?: string) {
-  const path = typeof s === "undefined" ? useRoute().path : s;
-  for (const locale of allLocales) {
-    const prefix = "/" + locale;
-    if (path.startsWith(prefix)) {
-      return path.slice(prefix.length);
-    }
-  }
-  return path;
+export function useCommonSEOTitle (raw: ComputedRef<string>, keys?: ComputedRef<string[]>) {
+  const title = computed(() => raw.value + config.SEO_title);
+  useHead({
+    title,
+    meta: [{
+      name: "description",
+      content: title
+    }, {
+      name: "keywords",
+      content: computed(() => `${raw.value}${keys?.value.length ? ("," + keys?.value.join(",")) : ""},${config.SEO_keywords}`)
+    }]
+  });
+  useSeoMeta({
+    ogTitle: title,
+    ogDescription: title
+  });
 }
 
 /**
  * 计算rocket的url
  */
 function calcRocketUrlSuffix (): boolean | string {
-  const path = useUnlocalePath();
-  const fromManage = path.startsWith("/manage");
-  const paths = (fromManage ? path.replace(/^\/manage/, "") : path)
-    .split("/")
-    .slice(1);
+  const path = useRoute().path.substring(1) || "articles";
+  const fromManage = path.startsWith("manage");
+  const paths = (fromManage ? path.replace(/^manage\//, "") : path).split("/");
   if (paths[0] === "about") {
     return false;
   }
@@ -93,7 +58,7 @@ export function calcRocketUrl () {
   if (typeof url === "boolean") {
     return githubRepoUrl;
   }
-  return useLocalePath()(url);
+  return url;
 }
 
 export function watchUntil (
@@ -171,11 +136,11 @@ export function useComment (key: HeaderTabUrl) {
         script.setAttribute("data-emit-metadata", "0");
         script.setAttribute("data-input-position", "top");
         script.setAttribute("data-theme", getTheme());
-        script.setAttribute("data-lang", getLang(useNuxtApp().$i18n.locale.value));
+        script.setAttribute("data-lang", getLang(useI18nCode().i18nCode.value));
         script.setAttribute("crossorigin", "anonymous");
         script.setAttribute("async", "");
         root.value!.appendChild(script);
-        watch(useNuxtApp().$i18n.locale, (locale) => {
+        watch(useI18nCode().i18nCode, (locale) => {
           updateGiscusConfig({
             lang: getLang(locale)
           });
@@ -189,18 +154,6 @@ export function useComment (key: HeaderTabUrl) {
     }
   });
   return { root, hasComment };
-}
-
-// XXX Must declare lifetime hook before using vue feature,like `render()` inside `notify()`.
-/**
- * 注册onBeforeUnmounted加密取消监听
- */
-export function registerCancelWatchEncryptor (): (() => void)[] {
-  const cancelFnList: (() => void)[] = [];
-  onBeforeUnmount(() => {
-    cancelFnList.forEach(fn => fn());
-  });
-  return cancelFnList;
 }
 
 /**
@@ -257,7 +210,7 @@ export function rmLocalStorage (key: string) {
  * dev热更新
  */
 export function devHotListen<T> (event: string, callback: (_: T) => unknown) {
-  if (isDev) {
+  if (isDev && inBrowser) {
     const listener = (e: Event) => {
       callback((e as CustomEvent<T>).detail);
       window.removeEventListener(event, listener);

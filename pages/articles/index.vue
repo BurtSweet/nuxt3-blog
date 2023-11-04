@@ -2,8 +2,11 @@
 import { ArticleItem } from "~/utils/common";
 import { formatTime, literalTime, useListPage } from "~/utils/nuxt";
 
-const localePath = useLocalePath();
-const { list: articlesList, pending } = useListPage<ArticleItem>();
+definePageMeta({
+  alias: "/"
+});
+
+const articlesList = await useListPage<ArticleItem>();
 
 const articleTagList = new Set<string>();
 
@@ -58,10 +61,9 @@ const toggleTags = (tag: string) => {
       </span>
     </div>
     <div class="body flexc">
-      <common-loading v-show="pending" :show-in-first="false" />
       <ul v-if="filteredList.length" class="w100">
         <li v-for="item in filteredList" v-show="item._show" :key="item.id">
-          <nuxt-link :to="localePath('/articles/' + String(item.id))">
+          <nuxt-link no-prefetch :to="'/articles/' + String(item.id)">
             <b>{{ item.title }}</b>
             <div class="foot flex">
               <span :title="formatTime(item.time)">{{
@@ -77,7 +79,7 @@ const toggleTags = (tag: string) => {
           </nuxt-link>
         </li>
       </ul>
-      <div v-else v-show="!pending" class="empty">
+      <div v-else class="empty">
         {{ $T('nothing-here') }}
       </div>
     </div>
@@ -188,7 +190,8 @@ $space: 13px;
           }
 
           b {
-            color: $theme-color-darken;
+            color: black;
+            font-weight: 500;
             font-size: f-size(1.02);
             min-height: 20px;
             line-height: 20px;
@@ -198,7 +201,7 @@ $space: 13px;
             letter-spacing: 0.2px;
 
             @include dark-mode {
-              color: $theme-color-lighten;
+              color: white;
             }
           }
 

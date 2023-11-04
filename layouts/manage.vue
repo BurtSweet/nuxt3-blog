@@ -1,14 +1,24 @@
-<script setup lang="ts">
+<script setup lang="tsx">
+import SvgIcon from "~/components/svg-icon.vue";
+import NuxtLink from "~/node_modules/nuxt/dist/app/components/nuxt-link";
 import UploadImage from "~/pages/manage/comps/upload-image.vue";
-import ManageMenu from "~/pages/templates/manage-menu.vue";
-import { rmLocalStorage, setLocalStorage, isAuthor, notify, translate, isDev } from "~/utils/nuxt";
-import { GithubTokenKey } from "~/utils/common";
+import { rmLocalStorage, setLocalStorage, translateT, isAuthor, notify, translate, isDev, calcRocketUrl } from "~/utils/nuxt";
+import { GithubTokenKey, HeaderTabs } from "~/utils/common";
 
 const pageLoading = useLoading();
 
 // 上传图片
 const showUploadImage = ref(false);
+const githubToken = useGithubToken();
+const encryptor = useEncryptor();
+const allPassed = computed(() => !!githubToken && encryptor.passwdCorrect.value);
 
+const activeRoute = computed(() => {
+  return useRoute().path.replace(/^\/manage\//, "/");
+});
+const travel = computed(() => {
+  return calcRocketUrl();
+});
 // mobile menu
 const isMobile = useIsMobile();
 const menuShow = ref<boolean>(false);
@@ -18,9 +28,71 @@ watch(isMobile, () => {
   });
 });
 
-// token & password
-const githubToken = useGithubToken();
-const encryptor = useEncryptor();
+const ManageMenu = defineComponent({
+  components: {
+    // eslint-disable-next-line vue/no-unused-components
+    "nuxt-link": NuxtLink,
+    "svg-icon": SvgIcon
+  },
+  render: () => (
+    <div class="manage-menu w100 flexc">
+      <ul>
+        <li>
+          <a class="upload-img-btn" onClick={() => { showUploadImage.value = true; }}>
+            { translateT("images") }
+          </a>
+        </li>
+        <li>
+          <nuxt-link
+            to='/manage/config'
+            class={{ active: activeRoute.value.startsWith("/config") }}
+          >
+            { translateT("config") }
+          </nuxt-link>
+        </li>
+        {
+          HeaderTabs.map(tab => (
+            <li key={tab.url}>
+              <nuxt-link
+                to={"/manage" + tab.url}
+                class={{ active: activeRoute.value.startsWith(tab.url) }}
+              >
+                <span>{ translateT(tab.name) }</span>
+              </nuxt-link>
+            </li>
+          ))
+        }
+      </ul>
+      <div
+        title={(!useCorrectSha().value || useNuxtApp().$sameSha.value) ? (allPassed.value ? translate("all-verified") : translate("token-and-passwd")) : translate("commit-id-not-correct")}
+        class={{ warning: useCorrectSha().value && !useNuxtApp().$sameSha.value }}
+        onClick={() => { showModal.value = true; }}
+      >
+        <svg-icon
+          class={{ invalid: !githubToken.value, active: allPassed.value }}
+          name="password"
+        />
+      </div>
+      <nuxt-link title="🚀" to={travel.value}>
+        <svg-icon name="rocket" />
+      </nuxt-link>
+      {
+        isDev &&
+      <nuxt-link title="svgs" to="/manage/all-svg" target="_blank">
+        SVG
+      </nuxt-link>
+      }
+      {
+        (pageLoading.loadingState.value && !isMobile.value)
+          ? <div>
+            <svg-icon name="loading"/>
+          </div>
+          : null
+      }
+    </div>
+  )
+});
+
 // 进入manage界面后，大概率会用到encrypt，所以这里先异步加载，尚未遇到bug
 encryptor.init();
 
@@ -85,10 +157,10 @@ const modalOk = () => {
       <span class="mobile-menu-toggler" @click="menuShow = true">
         <svg-icon :name="pageLoading.loadingState.value ? 'loading' : 'menu'" />
       </span>
-      <manage-menu v-show="!isMobile" @upload-image="showUploadImage = true" @show-verify="showModal = true" />
+      <manage-menu v-show="!isMobile" />
       <div v-show="isMobile">
         <common-dropdown v-model:show="menuShow">
-          <manage-menu @upload-image="showUploadImage = true" @show-verify="showModal = true" />
+          <manage-menu />
         </common-dropdown>
       </div>
     </nav>
@@ -112,14 +184,14 @@ const modalOk = () => {
         <b>Github Token
           <svg-icon v-if="!!githubToken" name="correct" />
         </b>
-        <input v-model="inputToken" data-focus :disabled="isDev">
+        <input v-model="inputToken" :placeholder="$t('please-input')" data-focus :disabled="isDev">
       </label>
       <label class="manage-input-pwd">
         <b>
           {{ $T('passwd') }}
           <svg-icon v-if="encryptor.passwdCorrect.value" name="correct" />
         </b>
-        <input v-model="inputPwd">
+        <input v-model="inputPwd" :placeholder="$t('please-input')">
       </label>
     </template>
   </common-modal>

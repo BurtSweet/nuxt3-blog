@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import axios from "axios";
 import FormData from "form-data";
-import { getLocalStorage, setLocalStorage, notify, translate, isDev, devHotListen } from "~/utils/nuxt";
-import { uploadImageEvent } from "~/vite-plugins/types";
+import { getLocalStorage, setLocalStorage, notify, translate } from "~/utils/nuxt";
 
 const props = defineProps({
   modelValue: Boolean
@@ -60,6 +59,22 @@ const dropImg = (ev: DragEvent) => {
   }
   img.value = file;
 };
+const onPaste = (event: ClipboardEvent) => {
+  const items = event.clipboardData && event.clipboardData.items;
+  let file: File | null = null;
+  if (items && items.length) {
+    for (let i = 0; i < items.length; i += 1) {
+      if (items[i].type.includes("image")) {
+        file = items[i].getAsFile();
+        break;
+      }
+    }
+  }
+  if (file) {
+    img.value = file;
+  }
+};
+
 watch(img, (img) => {
   if (img) {
     const reader = new FileReader();
@@ -104,31 +119,16 @@ const afterUpload = (res: any) => {
 
 const doUpload = () => {
   uploading.value = true;
-  if (!isDev) {
-    const formData = new FormData();
-    formData.append("token", smmsToken.value);
-    formData.append("tinyPngToken", tinyPngToken.value);
-    formData.append("file", img.value);
-    axios({
-      url: `https://${window.location.host}/api/smms/upload`,
-      method: "post",
-      data: formData
-    }).then(res => afterUpload(res)).catch(err => afterUpload(err));
-  } else {
-    const reader = new FileReader();
-    reader.readAsDataURL(img.value!);
-    reader.onload = (event) => {
-      import.meta.hot!.send(uploadImageEvent, {
-        token: smmsToken.value,
-        tinyPngToken: tinyPngToken.value,
-        file: event.target!.result,
-        filename: img.value!.name
-      });
-    };
-  }
+  const formData = new FormData();
+  formData.append("token", smmsToken.value);
+  formData.append("tinyPngToken", tinyPngToken.value);
+  formData.append("file", img.value);
+  axios({
+    url: "/api/smms/upload",
+    method: "post",
+    data: formData
+  }).then(res => afterUpload(res)).catch((err: Error) => afterUpload(err.message));
 };
-
-devHotListen(uploadImageEvent, afterUpload);
 
 const resultInput = ref<HTMLInputElement>();
 let clipboard: any;
@@ -144,10 +144,12 @@ onMounted(async () => {
       title: translate("copy-successful")
     });
   });
+  document.addEventListener("paste", onPaste);
 });
 
 onUnmounted(() => {
   clipboard?.destroy();
+  document.removeEventListener("paste", onPaste);
 });
 </script>
 

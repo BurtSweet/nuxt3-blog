@@ -1,17 +1,10 @@
 <script setup lang="ts">
-import config from "~/config";
-import { useContentPage, useComment, initViewer } from "~/utils/nuxt";
+import { useContentPage, useComment, initViewer, useCommonSEOTitle } from "~/utils/nuxt";
 import { KnowledgeItem } from "~/utils/common";
 
-const { item, tabUrl, modifyTime, markdownRef, htmlContent, mdPending } =
-  useContentPage<KnowledgeItem>();
+const { item, tabUrl, modifyTime, markdownRef, htmlContent } = await useContentPage<KnowledgeItem>();
+useCommonSEOTitle(computed(() => item.title));
 
-useHead({
-  title: computed(() => `《${item.title}》${config.SEO_title}`)
-});
-useSeoMeta({
-  ogTitle: computed(() => `《${item.title}》`)
-});
 const { root, hasComment } = useComment(tabUrl);
 initViewer(root);
 </script>
@@ -32,7 +25,7 @@ initViewer(root);
           <h2>
             {{ item.title }}
             <a
-              v-if="item.link"
+              v-if="item.link && item.link.startsWith('http')"
               target="_blank"
               :href="item.link"
               :title="$t('link')"
@@ -62,7 +55,6 @@ initViewer(root);
           <span />
         </div>
       </div>
-      <common-loading v-show="mdPending" :show-in-first="false" />
       <div class="article-container">
         <article ref="markdownRef" class="--markdown" v-html="htmlContent" />
       </div>

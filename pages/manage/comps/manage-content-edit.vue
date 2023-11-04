@@ -7,7 +7,7 @@ import { CommonItem, HeaderTabs, getEncryptedBlocks, getNowStamp, processEncrypt
 import { notify, deepClone, translate, getLocalStorage, rmLocalStorage, compareMd, loadOrDumpDraft, randomId, useManageContent } from "~/utils/nuxt";
 
 const props = defineProps<{
-  preProcessItem?:(_item: T, _list?: Ref<T[]> | {value: T[]}) => void;
+  preProcessItem?:(_item: T, _list?: T[]) => void;
   /** 更新之前处理item，附带markdown信息 */
   processWithContent?:(_md: string, _html: HTMLElement, _item: T) => void;
 }>();
@@ -30,11 +30,8 @@ const {
   decrypted,
   blockDecrypted,
   draftMarkdownContent,
-  markdownContent,
-  pending,
-  mdPending,
-  listPending
-} = useManageContent<T>();
+  markdownContent
+} = await useManageContent<T>();
 
 const activeRoute = targetTab.url;
 const encryptor = useEncryptor();
@@ -68,18 +65,18 @@ const previewContent = ref("");
 
 /** 更新list */
 const replaceOld = (newItem?: T) => {
-  const cloneList = list.value.map(item => deepClone(item));
+  const cloneList = list.map(item => deepClone(item));
   if (!!newItem && isNew) {
     // 更新item且是新增
     cloneList.splice(0, 0, newItem);
   } else if (newItem) {
     cloneList.splice(
-      list.value.findIndex(i => i.id === item.id),
+      list.findIndex(i => i.id === item.id),
       1,
       newItem
     );
   } else {
-    cloneList.splice(list.value.findIndex(i => i.id === item.id), 1);
+    cloneList.splice(list.findIndex(i => i.id === item.id), 1);
   }
   return cloneList;
 };
@@ -133,7 +130,7 @@ const getUploadInfo = async () => {
     }
   }
   if (!newItem.id) {
-    newItem.id = randomId();
+    newItem.id = randomId(list);
   }
   // 更新日期
   const nowTime = getNowStamp();
@@ -141,8 +138,12 @@ const getUploadInfo = async () => {
     newItem.time = nowTime;
   }
   newItem.modifyTime = nowTime;
+  // 删除_show和visitors
+  const _newItem = newItem as any;
+  delete _newItem.visitors;
+  delete _newItem._show;
   return {
-    item: newItem,
+    item: _newItem as T,
     md: mdContent
   };
 };
@@ -214,33 +215,27 @@ const delDraft = () => {
   hasDraft.value = false;
 };
 onMounted(() => {
-  // FIXME Why do we need to watch item.id?
-  // Seems like watcher of listPending has been triggered with wrong order.
-  watch([listPending, () => item.id], ([pend, _]) => {
-    if (!pend) {
-      hasDraft.value = getLocalStorage(draftPrefix()) !== null;
-    }
-  }, { immediate: true });
+  hasDraft.value = getLocalStorage(draftPrefix()) !== null;
 });
 </script>
 
 <template>
   <div class="manage-content-header flex">
     <div class="draft flex">
-      <common-button theme="default" size="small" :disabled="pending || !hasDraft" @click="loadDraft">
+      <common-button theme="default" size="small" :disabled="!hasDraft" @click="loadDraft">
         {{ $t('load-draft') }}
       </common-button>
-      <common-button theme="default" size="small" class="load-draft" :disabled="pending || undefined" @click="dumpDraft">
+      <common-button theme="default" size="small" class="load-draft" @click="dumpDraft">
         {{ $t('save-draft') }}
       </common-button>
-      <common-button theme="default" size="small" :disabled="pending || !hasDraft" @click="delDraft">
+      <common-button theme="default" size="small" :disabled="!hasDraft" @click="delDraft">
         {{ $t('delete-draft') }}
       </common-button>
     </div>
     <span class="status">{{ statusText }}</span>
     <common-button
       icon="upload"
-      :disabled="pending || !canUpload || currentOperate === 'delete' || (!decrypted && !mdPending)"
+      :disabled="!canUpload || currentOperate === 'delete' || !decrypted"
       :loading="processing && currentOperate === 'upload'"
       @click="doUpload"
     >
@@ -251,7 +246,7 @@ onMounted(() => {
       class="delete"
       theme="danger"
       icon="delete"
-      :disabled="pending || !canDelete || currentOperate === 'upload'"
+      :disabled="!canDelete || currentOperate === 'upload'"
       :loading="processing && currentOperate === 'delete'"
       @click="showDeleteModal = true"
     >
@@ -275,7 +270,6 @@ onMounted(() => {
       />
       <slot v-for="slot in slots" :name="slot" :item="item" :disabled="!decrypted" />
     </div>
-    <common-loading v-show="listPending" :show-in-first="false" />
   </div>
   <div class="manage-content-md-info" :data-title="$TT('content')">
     <client-only>
@@ -283,7 +277,6 @@ onMounted(() => {
         v-model="inputMarkdown"
         :get-html="getHtml"
         :disabled="!decrypted || !blockDecrypted"
-        :loading="mdPending?.value || false"
         @preview="setPreviewInfo()"
       />
     </client-only>

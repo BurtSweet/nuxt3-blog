@@ -1,8 +1,9 @@
+import path from "path";
 import fs from "fs";
 import { execSync } from "child_process";
+import { generateSiteMap, generateTimestamp } from "./scripts/generate";
 import config from "./config";
 import { allPlugins, buildPlugins } from "./vite-plugins";
-import { i18nLocales } from "./utils/common";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -51,7 +52,6 @@ for (const b of [
 // https://v3.nuxtjs.org/docs/directory-structure/nuxt.config
 export default defineNuxtConfig({
   telemetry: false,
-  ssr: !isDev,
   app: {
     head: {
       meta: [
@@ -60,7 +60,6 @@ export default defineNuxtConfig({
           name: "viewport",
           content: "width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no"
         },
-        { name: "description", content: config.SEO_description },
         { name: "keywords", content: config.SEO_keywords },
         { name: "author", content: config.nickName }
       ],
@@ -71,7 +70,7 @@ export default defineNuxtConfig({
       title: config.title
     }
   },
-  css: ["~/assets/style/main.scss", "~/node_modules/katex/dist/katex.min.css"],
+  css: ["~/assets/style/main.scss", "~/node_modules/katex/dist/katex.min.css", "~/node_modules/viewerjs/dist/viewer.css"],
   runtimeConfig: {
     public: {
       stickers,
@@ -81,30 +80,16 @@ export default defineNuxtConfig({
     app: {
       NUXT_ENV_CURRENT_GIT_SHA: execSync("git rev-parse HEAD").toString().trim(),
       githubBranch,
-      mongoDBEnabled: !!process.env.MONGODB_URI,
+      mongoDBEnabled: !!process.env.MONGODB_URI || !!process.env.MONGODB_USER,
       cmtRepId: config.CommentRepoId || process.env.CommentRepoId,
       cmtRepCateId: config.CommentDiscussionCategoryId || process.env.CommentDiscussionCategoryId
     }
   },
   nitro: {
-    output: { dir: "{{ rootDir }}/.output", serverDir: "{{ output.dir }}/server", publicDir: "{{ output.dir }}/public" }
-  },
-  modules: [
-    "@nuxtjs/i18n"
-  ],
-  i18n: {
-    strategy: "prefix_except_default",
-    baseUrl: config.domain,
-    locales: i18nLocales.map(item => ({
-      code: item.code,
-      file: item.file,
-      iso: item.iso
-    })),
-    lazy: true,
-    langDir: "i18n",
-    defaultLocale: config.defaultLang,
-    vueI18n: {
-      fallbackLocale: config.defaultLang
+    prerender: {
+      crawlLinks: true,
+      failOnError: false,
+      ignore: ["/manage"]
     }
   },
   experimental: {
@@ -113,6 +98,7 @@ export default defineNuxtConfig({
      * https://github.com/nuxt/nuxt/blob/main/packages/nuxt/src/app/plugins/payload.client.ts#L27
      */
     // payloadExtraction: false
+    inlineSSRStyles: false
   },
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -126,17 +112,28 @@ export default defineNuxtConfig({
       }
     },
     build: {
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            // jsonWorker: [`${prefix}/language/json/json.worker`],
-            // cssWorker: [`${prefix}/language/css/css.worker`],
-            // htmlWorker: [`${prefix}/language/html/html.worker`],
-            // tsWorker: [`${prefix}/language/typescript/ts.worker`],
-            // editorWorker: [`${prefix}/editor/editor.worker`],
-          }
+      // minify: false
+    }
+  },
+  hooks: {
+    "vite:extendConfig" (config, { isClient }) {
+      if (isClient) {
+        (config.build?.rollupOptions?.output as any).manualChunks = {
+          // markdown: ["highlight.js", "katex", "marked"]
+        };
+      }
+    },
+    "nitro:build:before" (nitro) {
+      const apiPath = path.join(__dirname, "utils", "api");
+      if (["node-server"].includes(nitro.options.preset)) {
+        for (const file of fs.readdirSync(path.join(apiPath, "db-tcp"))) {
+          fs.renameSync(path.join(apiPath, "db-tcp", file), path.join(apiPath, "db", file));
         }
       }
+    },
+    "nitro:build:public-assets" (nitro) {
+      generateSiteMap(nitro.options.output.publicDir);
+      generateTimestamp(nitro.options.output.publicDir);
     }
   }
 });
