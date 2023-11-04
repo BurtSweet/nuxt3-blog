@@ -9,7 +9,7 @@ const buildTime = ref<string>("$(inject:timestamp)");
 
 const paragraphs = [
   "胸怀鸿鹄之志而生如蝼蚁",
-  "虽有不屈之心却命比纸"
+  "虽有不屈之心却命比纸薄"
 ];
 
 onBeforeMount(async () => {
