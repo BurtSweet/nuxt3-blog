@@ -166,7 +166,9 @@ const modalOk = () => {
     </nav>
     <section>
       <div>
-        <nuxt-page />
+        <client-only>
+          <nuxt-page />
+        </client-only>
       </div>
     </section>
   </div>
@@ -235,7 +237,7 @@ $menu-width: 120px;
       $left: $menu-width + $padding-left;
 
       height: 100%;
-      width: calc(100% - #{$left + 30px});
+      width: 100%;
       padding: 0 30px 0 $left;
 
       > div {
@@ -441,7 +443,6 @@ $menu-width: 120px;
     }
 
     > section > div {
-      width: 96%;
       padding-left: 2%;
       padding-right: 2%;
       padding-top: 20px;

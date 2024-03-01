@@ -1,6 +1,6 @@
-import { CommonItem } from "~/utils/common";
+import type { CommonItem } from "~/utils/common";
 import { notify, translate, devHotListen, useCurrentTab } from "~/utils/nuxt";
-import { UpdateRebuild } from "~/vite-plugins/rebuild";
+import type { UpdateRebuild } from "~/vite-plugins/rebuild";
 import { rebuildEvent } from "~/vite-plugins/types";
 
 export function isAuthor (): never {
@@ -47,7 +47,7 @@ function listenServer (): Promise<boolean> {
             description: translate("refresh-after-sec", [1])
           });
           setTimeout(() => {
-            import.meta.hot!.invalidate();
+            location.reload();
           }, 1000);
         }
       } else {

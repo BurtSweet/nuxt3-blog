@@ -1,5 +1,5 @@
 import { createVNode, render } from "vue";
-import { CommonItem, AllKeys, HeaderTabUrl, ModalContainerId } from "~/utils/common";
+import { type CommonItem, type AllKeys, type HeaderTabUrl, ModalContainerId } from "~/utils/common";
 import { getLocalStorage, setLocalStorage, assignItem, translate, translateT, useCurrentTab, notify } from "~/utils/nuxt";
 import CommonModal from "~/components/common-modal.vue";
 
@@ -141,6 +141,7 @@ export function createCommitModal () {
       render(null, container);
       resolve(false);
     };
+    vm.appContext = useNuxtApp().vueApp._context;
     render(vm, container);
     document
       .getElementById(ModalContainerId)!

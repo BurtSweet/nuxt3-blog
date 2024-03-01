@@ -202,18 +202,22 @@
       }
     }
 
-    >.open-link > svg {
-      display: none;
-      position: absolute;
-      top: 0;
-      right: 0;
-      transform: translate(100%, 50%);
-      width: 12px;
-      height: 12px;
-      fill: #0039ff;
+    >.open-link {
+      height: 1rem;
 
-      @include dark-mode {
-        fill: #fff;
+      > svg {
+        display: none;
+        position: absolute;
+        top: 0;
+        right: 0;
+        transform: translate(100%, 50%);
+        width: 12px;
+        height: 12px;
+        fill: #0039ff;
+
+        @include dark-mode {
+          fill: #fff;
+        }
       }
     }
   }
@@ -433,8 +437,8 @@
 
       >span {
         cursor: pointer;
-        width: 15px;
-        height: 15px;
+        width: 24px;
+        height: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -535,7 +539,7 @@
   }
 
   fieldset {
-    width: calc(98% - 2rem);
+    width: 98%;
     margin: 22px 1%;
     padding: 1.2rem 1rem 0.6rem;
     position: relative;

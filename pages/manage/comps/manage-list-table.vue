@@ -1,6 +1,6 @@
 <script setup lang="ts" generic="T extends CommonItem">
 import { deleteList } from "ls:~/utils/nuxt/manage/github";
-import { CommonItem } from "~/utils/common";
+import { type CommonItem } from "~/utils/common";
 import { formatTime, useStatusText, useManageList } from "~/utils/nuxt";
 
 const { targetTab, list, customFilter } = await useManageList<T>();
@@ -53,7 +53,10 @@ function changeSelect (item: CommonItem) {
 function deleteSelect () {
   showConfirmModal.value = false;
   toggleProcessing();
-  const newList = list.filter((item) => {
+  const newList = list.map((item) => {
+    delete (item as any)._show;
+    return item;
+  }).filter((item) => {
     return (
       selectedList.find(selected => selected.id === item.id) === undefined
     );

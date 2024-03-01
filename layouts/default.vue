@@ -2,7 +2,7 @@
 import type Headroom from "headroom.js";
 import NuxtLink from "~/node_modules/nuxt/dist/app/components/nuxt-link";
 import { inBrowser, isPrerender, calcRocketUrl, translateT, useHackKey } from "~/utils/nuxt";
-import { i18nLocales, githubRepoUrl, I18nCode, HeaderTabs } from "~/utils/common";
+import { i18nLocales, githubRepoUrl, type I18nCode, HeaderTabs } from "~/utils/common";
 import config from "~/config";
 
 const hackKey = useHackKey();
@@ -158,7 +158,7 @@ const isFirst = ref(true);
     </section>
     <footer id="footer" class="flex w100">
       <div class="middle flexc">
-        <span>Copyright (c) 2019-2023 <b><a target="_blank" :href="'https://github.com/'+config.githubName">{{ config.nickName }}</a> | {{ footerDomain }}</b></span>
+        <span>Copyright (c) 2019-2024 <b><a target="_blank" :href="'https://github.com/'+config.githubName">{{ config.nickName }}</a> | {{ footerDomain }}</b></span>
         <span class="flex"><a class="rss" target="_blank" href="/sitemap.xml" title="rss">RSS <svg-icon name="rss" /></a>| Powered By <a class="nuxt" href="https://github.com/yunyuyuan/nuxt3-blog" target="_blank">nuxt3-blog</a></span>
       </div>
     </footer>

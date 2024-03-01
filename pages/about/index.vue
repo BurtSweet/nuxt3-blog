@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { isDev, isPrerender } from "~/utils/nuxt";
+import { isDev, isPrerender, translateT, useCommonSEOTitle } from "~/utils/nuxt";
 import bg from "~/assets/image/outerwilds.jpg";
 import config from "~/config";
+
+useCommonSEOTitle(computed(() => translateT("about")));
 
 const commitSha = computed(() => useRuntimeConfig().app.NUXT_ENV_CURRENT_GIT_SHA);
 const commitUrl = computed(() => `https://github.com/${config.githubName}/${config.githubRepo}/commit/${commitSha.value}`);
 const buildTime = ref<string>("$(inject:timestamp)");
 
 const paragraphs = [
-  "胸怀鸿鹄之志而生如蝼蚁",
-  "虽有不屈之心却命比纸薄"
+	"胸怀鸿鹄之志而生如蝼蚁",
+	"虽有不屈之心却命比纸薄"
 ];
 
 onBeforeMount(async () => {
@@ -46,7 +48,7 @@ onBeforeMount(async () => {
 
     .about {
       width: 100vw;
-      height: calc(100vh - #{$footer-height});
+      height: 100vh;
       padding-bottom: $footer-height;
       position: relative;
 
