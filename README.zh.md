@@ -20,7 +20,7 @@
 [English Readme](/README.md) | 中文说明
 
 # 博客特性
-* 💻 **5分钟完成搭建**。完全免费，不用写一行代码。
+* 💻 **5分钟完成搭建**。快速搭建，不用写一行代码。
 * 🤝 **方便使用**。全能的后台管理界面，只需一个token，就可**在网页端更新配置，新增/修改/删除博客内容**，不用`notepad`，更不用`git push`。
 * 📷 **集成图床**。集成smms图床和tinypng图片压缩，网页端一键上传博客图片。
 * 🌐 **纯静态**。打包为纯静态网站，无需后端。
@@ -33,27 +33,18 @@
 
 # 教我搭建
 <center>
-<img width="600px" src="https://s2.loli.net/2023/05/12/742XNyquQ3CTRWO.png"/>
+<img width="600px" src="https://s2.loli.net/2024/03/10/ih2KsmBDISAWN3U.png"/>
 </center>
 
-## 部署方式二选一
-### 方式1：一键部署 (注意：请取消勾选`Create private Git Repository`)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyunyuyuan%2Fnuxt3-blog&repository-name=nuxt3-blog)
-
-### 方式2：fork再部署 (此方式可以同步后续项目更新)
-1. fork本项目
-2. 在vercel里部署（不用修改任何编译参数）
-
-## 部署后
-
-#### 更改用户名
-把`config.ts`中的`githubName`更改为你自己的Github用户名。
-
-#### 获取Token
-在 https://github.com/settings/tokens/new 生成一个Token，需要勾选**repo**权限，点击`Generate token`。
+1. Fork 这个项目。
+2. 在 `config.ts` 中将 `githubName`更改为您当前的 Github 账户。如果您的存储库名称不是 **nuxt3-blog**，也请修改 `githubRepo`。
+3. 在 [Nitro 支持的平台](https://nitro.unjs.io/deploy) 上部署。
+4. 前往 [https://github.com/settings/tokens/new](https://github.com/settings/tokens/new)，选择 **repo** 范围，然后点击 `Generate`。
+5. 前往 https://your-blog-domain/manage，输入您的 github 令牌。
+6. 享受创作的乐趣。
 
 #### 额外事项
-* 若要使用浏览量统计功能，则需要[注册MongoDB账号](https://www.mongodb.com/cloud/atlas/register)，并开启[MongoDB整合](https://vercel.com/integrations/mongodbatlas)
+* 若要使用浏览量统计功能，则需要[注册MongoDB账号](https://www.mongodb.com/cloud/atlas/register)，然后创建一个名为`nuxt3-blog`的database, 并设置Mongodb环境变量(参考`env.sample`)
 * 若要使用评论功能，则需要为Github安装[giscus](https://github.com/apps/giscus)，并开启[discussion](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/enabling-or-disabling-github-discussions-for-a-repository)，然后填写`config.ts`中的`CommentRepoId`和`CommentDiscussionCategoryId`  
   参考giscus.app，[填写](https://giscus.app/zh-CN#:~:text=%E4%BB%93%E5%BA%93%EF%BC%9A,%E8%BF%9E%E6%8E%A5%E5%88%B0%E6%AD%A4%E4%BB%93%E5%BA%93%E3%80%82) **你的仓库** 的地址后，复制`data-repo-id`和`data-category-id`，分别对应`CommentRepoId`和`CommentDiscussionCategoryId`，位置在[data-repo-id和data-category-id](https://giscus.app/zh-CN#:~:text=%E5%9C%A8%E4%BD%A0%E6%83%B3%E8%AE%A9%E8%AF%84%E8%AE%BA%E5%87%BA%E7%8E%B0%E7%9A%84%E4%BD%8D%E7%BD%AE%E6%B7%BB%E5%8A%A0%E4%BB%A5%E4%B8%8B%20%3Cscript%3E%20%E6%A0%87%E7%AD%BE%E3%80%82%E4%BD%86%E5%A6%82%E6%9E%9C%E5%B7%B2%E7%BB%8F%E5%AD%98%E5%9C%A8%E5%B8%A6%E6%9C%89%20giscus%20%E7%B1%BB%E7%9A%84%E5%85%83%E7%B4%A0%EF%BC%8C%E5%88%99%E8%AF%84%E8%AE%BA%E4%BC%9A%E8%A2%AB%E6%94%BE%E5%9C%A8%E9%82%A3%E9%87%8C%E3%80%82)
 
@@ -86,7 +77,6 @@
 - [ ] 支持 cloudflare page,netlify 以及其他服务
 
 # 项目结构
-* `/api` serverless函数
 * `/assets`
   * `/image` vite引入的图片
   * `/style` 公共/功能样式
@@ -101,8 +91,8 @@
 * `/public`
   * `/rebuild` 所有博客数据
   * `/sticker` 所有表情图片
-* `/scripts` Gulp执行的脚本.
-* `/server` api server,仅在SSR下可用.
+* `/scripts` Gulp执行的脚本
+* `/server` api服务器(Nodejs)
 * `/utils`
   * `/api` `/server`调用的函数.
   * `/nuxt` nuxt相关的功能代码

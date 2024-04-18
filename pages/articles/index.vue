@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { type ArticleItem } from "~/utils/common";
-import { formatTime, literalTime, useListPage } from "~/utils/nuxt";
+import { formatTime, literalTime, useHackKey, useListPage } from "~/utils/nuxt";
 
 definePageMeta({
   alias: "/"
 });
 
+const hackKey = useHackKey();
 const articlesList = await useListPage<ArticleItem>();
 
-const articleTagList = new Set<string>();
+const articleTagList = new Map<string, number>();
 
 watch(articlesList, () => {
+  articleTagList.clear();
   articlesList.forEach((item) => {
-    item.tags.forEach(v => articleTagList.add(v));
+    item.tags.forEach(v => articleTagList.set(v, (articleTagList.get(v) || 0) + 1));
   });
 }, { immediate: true });
 
@@ -27,7 +29,7 @@ const tags = computed<string[]>(() => {
 
 const filteredList = computed(() => {
   return articlesList.filter(item =>
-    tags.value.every(tag => item.tags.includes(tag))
+    !tags.value.length || tags.value.some(tag => item.tags.includes(tag))
   );
 });
 
@@ -48,12 +50,12 @@ const toggleTags = (tag: string) => {
     <div class="head flex">
       <div class="tags flex">
         <the-tag
-          v-for="tag in articleTagList"
-          :key="tag"
+          v-for="[tag, count] in articleTagList"
+          :key="tag+hackKey"
           :active="tags.includes(tag)"
           @click="toggleTags(tag)"
         >
-          {{ tag }}
+          {{ tag }}(<span>{{ count }}</span>)
         </the-tag>
       </div>
       <span class="num">
@@ -71,7 +73,7 @@ const toggleTags = (tag: string) => {
               }}</span>
               <b />
               <span>{{ item.len }} {{ $t('words-num') }}</span>
-              <span v-if="Number(item.visitors) >= 0" class="visitors flex" :title="$t('visit-time', [item.visitors])">
+              <span v-if="useRuntimeConfig().app.mongoDBEnabled && Number(item.visitors) >= 0" class="visitors flex" :title="$t('visit-time', [item.visitors])">
                 <svg-icon name="view" />
                 {{ item.visitors }}
               </span>
@@ -109,6 +111,7 @@ $space: 13px;
     .num {
       font-size: f-size(0.77);
       margin-left: auto;
+      word-break: keep-all;
 
       b {
         margin-right: 3px;

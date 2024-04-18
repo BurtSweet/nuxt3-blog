@@ -2,7 +2,7 @@
 import { useContentPage, useComment, initViewer, useCommonSEOTitle } from "~/utils/nuxt";
 import { type KnowledgeItem } from "~/utils/common";
 
-const { item, tabUrl, modifyTime, markdownRef, htmlContent } = await useContentPage<KnowledgeItem>();
+const { item, tabUrl, writeDate, markdownRef, htmlContent } = await useContentPage<KnowledgeItem>();
 useCommonSEOTitle(computed(() => item.title));
 
 const { root, hasComment } = useComment(tabUrl);
@@ -59,14 +59,11 @@ initViewer(root);
         <article ref="markdownRef" class="--markdown" v-html="htmlContent" />
       </div>
       <span class="foot flex">
-        <span v-if="Number(item.visitors) >= 0" class="visitors flex" :title="$t('visit-time', [item.visitors])">
+        <span v-if="useRuntimeConfig().app.mongoDBEnabled && Number(item.visitors) >= 0" class="visitors flex" :title="$t('visit-time', [item.visitors])">
           <svg-icon name="view" />
           {{ item.visitors }}
         </span>
-        <span class="modify">
-          {{ $t('updated-at') }}:
-          <time>{{ modifyTime }}</time>
-        </span>
+        <writeDate />
       </span>
     </div>
   </div>
@@ -358,11 +355,6 @@ initViewer(root);
     > .foot {
       margin-left: auto;
       margin-top: 40px;
-
-      .modify {
-        font-size: f-size(0.75);
-        color: #f80;
-      }
 
       .visitors {
         padding-right: 15px;
