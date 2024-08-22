@@ -140,14 +140,14 @@
   },
   {
     "title": "VPS常用",
-    "len": 3091,
+    "len": 3169,
     "tags": [
       "vps",
       "linux"
     ],
     "id": 3455,
     "time": 1664401192063,
-    "modifyTime": 1695820353751,
+    "modifyTime": 1724319477626,
     "encrypt": false,
     "menu": [
       {
@@ -240,8 +240,7 @@
         "text": "vps 测速 ：",
         "url": "#id-vps%E6%B5%8B%E9%80%9F%20%EF%BC%9A"
       }
-    ],
-    "_show": true
+    ]
   },
   {
     "title": "linux准备工作",
