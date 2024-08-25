@@ -12,6 +12,9 @@ platform:
   os: linux
   arch: amd64
 
+clone:
+  retries: 3
+
 steps:
   - name: build_project
     image: node:18
@@ -33,7 +36,7 @@ steps:
       - pnpm build
 
   - name: build_docker
-    image: docker:latest
+    image: docker:26.0.1
     volumes:
       - name: docker
         path: /var/run/docker.sock
@@ -78,6 +81,9 @@ trigger:
 platform:
   os: linux
   arch: amd64
+
+clone:
+  retries: 3
 
 steps:
   - name: backup_img

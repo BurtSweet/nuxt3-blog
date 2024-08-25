@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { useContentPage, useComment, initViewer, useCommonSEOTitle } from "~/utils/nuxt";
 import { type KnowledgeItem } from "~/utils/common";
+import Visitors from "~/utils/nuxt/public/visitors";
 
-const { item, tabUrl, writeDate, markdownRef, htmlContent } = await useContentPage<KnowledgeItem>();
+const { item, writeDate, markdownRef, htmlContent } = await useContentPage<KnowledgeItem>();
 useCommonSEOTitle(computed(() => item.title));
 
-const { root, hasComment } = useComment(tabUrl);
+const { root } = useComment(item.showComments);
 initViewer(root);
 </script>
 
 <template>
   <div ref="root" class="knowledge-detail">
-    <div class="captain flexc w100" :class="{'has-comment': hasComment}">
+    <div class="captain flexc w100" :class="{'has-comment': item.showComments}">
       <div class="info">
         <div class="cover">
           <the-lazy-img
@@ -59,10 +60,7 @@ initViewer(root);
         <article ref="markdownRef" class="--markdown" v-html="htmlContent" />
       </div>
       <span class="foot flex">
-        <span v-if="useRuntimeConfig().app.mongoDBEnabled && Number(item.visitors) >= 0" class="visitors flex" :title="$t('visit-time', [item.visitors])">
-          <svg-icon name="view" />
-          {{ item.visitors }}
-        </span>
+        <Visitors :visitors="item.visitors" />
         <writeDate />
       </span>
     </div>
@@ -73,10 +71,10 @@ initViewer(root);
 .knowledge-detail {
   margin: 0 15px 80px;
 
-  .captain {
+  >.captain {
     margin: auto;
     position: relative;
-    width: 1000px;
+    align-items: start;
 
     > .info {
       margin: 40px 0 20px;
@@ -348,8 +346,8 @@ initViewer(root);
       }
     }
 
-    > .article-container {
-      width: 800px;
+    >.article-container {
+      min-height: 100px;
     }
 
     > .foot {
@@ -387,10 +385,8 @@ initViewer(root);
     width: 100%;
     margin: 0 0 80px;
 
-    .captain {
+    >.captain {
       width: calc(100% - 20px) !important;
-      max-width: unset;
-      min-width: unset;
 
       > .info {
         flex-direction: column;
@@ -421,10 +417,6 @@ initViewer(root);
             padding-left: 0;
           }
         }
-      }
-
-      > .article-container {
-        width: 100%;
       }
     }
   }

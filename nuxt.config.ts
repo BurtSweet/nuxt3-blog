@@ -1,9 +1,10 @@
 import path from "path";
 import fs from "fs";
 import { execSync } from "child_process";
-import { generateSiteMap, generateTimestamp } from "./scripts/generate";
+import { generateSiteMap } from "./scripts/generate";
 import config from "./config";
 import { allPlugins, buildPlugins } from "./vite-plugins";
+import { getNowDayjsString } from "./utils/common";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -36,8 +37,6 @@ if (msAnalyzeId && !isDev) {
   });
 }
 
-const timestamp = Date.now();
-
 let githubBranch = "main";
 for (const b of [
   // vercel
@@ -59,6 +58,7 @@ for (const b of [
 // const prefix = "monaco-editor/esm/vs";
 // https://v3.nuxtjs.org/docs/directory-structure/nuxt.config
 export default defineNuxtConfig({
+  devtools: { enabled: false },
   telemetry: false,
   app: {
     head: {
@@ -82,15 +82,11 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       stickers,
-      svgs: isDev ? svgs : [],
-      timestamp
+      svgs: isDev ? svgs : []
     },
     app: {
       NUXT_ENV_CURRENT_GIT_SHA: execSync("git rev-parse HEAD").toString().trim(),
-      githubBranch,
-      mongoDBEnabled: !!process.env.MONGODB_URI || !!process.env.MONGODB_USER,
-      cmtRepId: config.CommentRepoId || process.env.CommentRepoId,
-      cmtRepCateId: config.CommentDiscussionCategoryId || process.env.CommentDiscussionCategoryId
+      githubBranch
     }
   },
   nitro: {
@@ -119,10 +115,15 @@ export default defineNuxtConfig({
   // @ts-ignore
   vite: {
     plugins: isDev ? allPlugins : buildPlugins,
+    define: {
+      __NB_MONGODB_ENABLED__: !!import.meta.env.MONGODB_URI || !!import.meta.env.MONGODB_USER,
+      __NB_COMMENTING_ENABLED__: !!(config.CommentRepoId || import.meta.env.CommentRepoId) && !!(config.CommentDiscussionCategoryId || import.meta.env.CommentDiscussionCategoryId),
+      __NB_BUILD_TIME__: JSON.stringify(getNowDayjsString())
+    },
     css: {
       preprocessorOptions: {
         scss: {
-          additionalData: "@use 'sass:math';@import 'assets/style/var';"
+          additionalData: "@use 'sass:math';@use 'sass:color';@import 'assets/style/var';"
         }
       }
     },
@@ -148,7 +149,6 @@ export default defineNuxtConfig({
     },
     "nitro:build:public-assets" (nitro) {
       generateSiteMap(nitro.options.output.publicDir);
-      generateTimestamp(nitro.options.output.publicDir);
     }
   }
 });

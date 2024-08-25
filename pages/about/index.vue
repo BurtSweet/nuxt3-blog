@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { isDev, isPrerender, translateT, useCommonSEOTitle } from "~/utils/nuxt";
+import { translateT, useCommonSEOTitle } from "~/utils/nuxt";
 import bg from "~/assets/image/outerwilds.jpg";
 import config from "~/config";
 
@@ -7,18 +7,15 @@ useCommonSEOTitle(computed(() => translateT("about")));
 
 const commitSha = computed(() => useRuntimeConfig().app.NUXT_ENV_CURRENT_GIT_SHA);
 const commitUrl = computed(() => `https://github.com/${config.githubName}/${config.githubRepo}/commit/${commitSha.value}`);
-const buildTime = ref<string>("$(inject:timestamp)");
+const buildTime = __NB_BUILD_TIME__;
 
 const paragraphs = [
-	"胸怀鸿鹄之志而生如蝼蚁",
-	"虽有不屈之心却命比纸薄"
+  "幽深宇宙已岁逾百亿，惟闪烁星光点缀生机",
+  "我常仰望浩瀚天际，思念在同一颗星球的你",
+  "想，那转瞬的迷人流星，也许就是你的回眸",
+  "光坠之地，吾之忧祈",
+  "——2021.12.4"
 ];
-
-onBeforeMount(async () => {
-  if (!isPrerender) {
-    buildTime.value = (!isDev ? (await (await fetch("/timestamp.txt")).text()) : "-");
-  }
-});
 </script>
 
 <template>
@@ -50,7 +47,9 @@ onBeforeMount(async () => {
       width: 100vw;
       height: 100vh;
       padding-bottom: $footer-height;
-      position: relative;
+      position: fixed;
+      left: 0;
+      top: 0;
 
       img {
         position: absolute;

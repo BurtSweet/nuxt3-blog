@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { addScrollListener, rmScrollListener, type ArticleItem } from "~/utils/common";
 import { getLocalStorage, rmLocalStorage, setLocalStorage, initViewer, isPrerender, useContentPage, useComment, watchUntil, useCommonSEOTitle } from "~/utils/nuxt";
+import Visitors from "~/utils/nuxt/public/visitors";
 
-const { item, tabUrl, writeDate, menuItems, htmlContent, markdownRef, htmlInserted } = await useContentPage<ArticleItem>();
+const { item, writeDate, menuItems, htmlContent, markdownRef, htmlInserted } = await useContentPage<ArticleItem>();
 useCommonSEOTitle(computed(() => item.title), computed(() => item.tags));
 const activeAnchor = ref<string>();
 
@@ -54,13 +55,13 @@ onBeforeUnmount(() => {
   rmScrollListener(listenAnchor);
 });
 
-const { root, hasComment } = useComment(tabUrl);
+const { root } = useComment(item.showComments);
 initViewer(root);
 </script>
 
 <template>
   <div ref="root" class="article-detail">
-    <div class="captain w100" :class="{'has-comment': hasComment}">
+    <div class="captain w100" :class="{'has-comment': item.showComments}">
       <div class="article-container">
         <h1>{{ item.title }}</h1>
         <div ref="viewerContainer" class="html-container">
@@ -82,10 +83,7 @@ initViewer(root);
             </the-tag>
           </div>
           <writeDate />
-          <span v-if="useRuntimeConfig().app.mongoDBEnabled && Number(item.visitors) >= 0" class="visitors flex" :title="$t('visit-time', [item.visitors])">
-            <svg-icon name="view" />
-            {{ item.visitors }}
-          </span>
+          <Visitors :visitors="item.visitors" />
         </div>
       </div>
       <div v-if="menuItems.length" class="menu flexc" :class="{compact: hideMenu}">
@@ -110,20 +108,16 @@ initViewer(root);
 
 <style lang="scss">
 .article-detail {
-  margin-bottom: 60px;
+  margin: 0 auto 60px;
 
-  .captain {
+  >.captain {
     display: flex;
     align-items: flex-start;
     margin: auto;
 
     > .article-container {
-      flex-grow: 1;
       position: relative;
-      margin: 0 0 0 20px;
-      width: 900px;
-      max-width: 900px;
-      min-width: 900px;
+      width: 100%;
 
       > h1 {
         margin: 30px 0 40px;
@@ -178,7 +172,7 @@ initViewer(root);
           }
         }
 
-        > .write-date {
+        .write-date {
           margin-left: auto;
         }
 
@@ -213,7 +207,7 @@ initViewer(root);
       top: $header-height;
       align-items: flex-end;
       padding: 15px 0 55px;
-      margin-left: 36px;
+      margin-left: 20px;
 
       // @at-root #default-layout #header:not(.headroom--pinned).headroom--not-top + #body & {
       //   top: 0;
@@ -246,7 +240,7 @@ initViewer(root);
 
       ol {
         padding: 20px 0 0 5px;
-        width: 160px;
+        width: 150px;
         list-style: none;
 
         $mouse-out-color: #777;
@@ -295,7 +289,7 @@ initViewer(root);
 
             white-space: nowrap;
             line-height: f-size(1.2);
-            font-size: f-size(0.85);
+            font-size: f-size(0.75);
           }
 
           @include dark-mode {
@@ -307,7 +301,7 @@ initViewer(root);
             content: "";
             border-radius: 50%;
 
-            @include square(8px);
+            @include square(6px);
 
             background: $mouse-out-color;
 
@@ -322,7 +316,7 @@ initViewer(root);
 
           &.small {
             span {
-              font-size: f-size(0.8);
+              font-size: f-size(0.7);
             }
 
             padding-left: 32px;
@@ -365,7 +359,7 @@ initViewer(root);
             $active-color: #006fff;
             $active-color-dark: rgb(255 255 255);
 
-            background: #e3efff;
+            background: #f0f6ff;
             color: $active-color;
 
             @include dark-mode {
@@ -414,36 +408,22 @@ initViewer(root);
   }
 }
 
-@media screen and (min-width: 768px) and (max-width: 1050px) {
+@media screen and (max-width: 1100px) {
   .article-detail {
-    width: 95vw;
-
-    .captain {
-      width: 100% !important;
-      max-width: unset;
-      min-width: unset;
-
-      > .article-container {
-        width: calc(100% - 120px);
-        max-width: unset;
-        min-width: unset;
-        margin: 0 60px;
-      }
-
+    >.captain {
       > .menu {
         display: none;
       }
     }
 
     .more-info {
-      width: 100%;
       padding: 8px 60px 10px;
 
       .tags {
         margin-left: 8px;
       }
 
-      .time {
+      .write-date {
         margin-right: 8px;
       }
     }
@@ -452,41 +432,7 @@ initViewer(root);
 
 @include mobile {
   .article-detail {
-    width: 100%;
-
-    .captain {
-      width: 100% !important;
-      max-width: unset;
-      min-width: unset;
-
-      > .article-container {
-        width: calc(100% - 20px);
-        max-width: unset;
-        min-width: unset;
-        margin: 0 10px;
-      }
-
-      > .menu {
-        display: none;
-
-        ul {
-          display: none;
-        }
-      }
-    }
-
-    .more-info {
-      width: 100%;
-      padding: 8px 0 10px;
-
-      .tags {
-        margin-left: 8px;
-      }
-
-      .time {
-        margin-right: 8px;
-      }
-    }
+    margin: 0 8px;
   }
 }
 </style>

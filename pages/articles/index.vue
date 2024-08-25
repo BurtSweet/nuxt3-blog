@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { type ArticleItem } from "~/utils/common";
 import { formatTime, literalTime, useHackKey, useListPage } from "~/utils/nuxt";
+import Visitors from "~/utils/nuxt/public/visitors";
 
 definePageMeta({
   alias: "/"
@@ -73,10 +74,7 @@ const toggleTags = (tag: string) => {
               }}</span>
               <b />
               <span>{{ item.len }} {{ $t('words-num') }}</span>
-              <span v-if="useRuntimeConfig().app.mongoDBEnabled && Number(item.visitors) >= 0" class="visitors flex" :title="$t('visit-time', [item.visitors])">
-                <svg-icon name="view" />
-                {{ item.visitors }}
-              </span>
+              <Visitors :visitors="item.visitors" />
             </div>
           </nuxt-link>
         </li>
@@ -92,7 +90,6 @@ const toggleTags = (tag: string) => {
 $space: 13px;
 
 .article-list {
-  width: 800px;
   margin: 0 auto 40px 0;
   align-items: flex-start;
 
@@ -121,8 +118,8 @@ $space: 13px;
   }
 
   .body {
-    $footer-color: #7c7c7c;
-    $footer-hover: black;
+    $footer-color: #9e9e9e;
+    $footer-hover: rgb(90 90 90);
     $footer-color-dark: rgb(218 218 218);
     $footer-hover-dark: rgb(253 253 253);
 
@@ -143,7 +140,7 @@ $space: 13px;
         }
 
         &:not(:last-of-type) {
-          margin-bottom: $space * 1.6;
+          margin-bottom: $space * 1.2;
         }
 
         &:hover {
@@ -161,16 +158,16 @@ $space: 13px;
                 }
               }
 
+              b {
+                background: color.adjust($footer-hover, $lightness: 30%);
+              }
+
               @include dark-mode {
                 color: $footer-hover-dark;
 
                 b {
-                  background: $footer-hover-dark;
+                  background: color.adjust($footer-hover-dark, $blackness: 30%);
                 }
-              }
-
-              b {
-                background: $footer-hover;
               }
             }
           }
@@ -186,7 +183,7 @@ $space: 13px;
             border-color: rgb(87 87 87);
           }
 
-          padding: $space * 0.8 0 $space * 1.4 $space * 0.8;
+          padding: $space * 0.4 0 $space * 1.2 $space * 0.8;
 
           &:active b {
             text-decoration: underline;
@@ -209,7 +206,7 @@ $space: 13px;
           }
 
           .foot {
-            margin-top: math.div($space, 1.5);
+            margin-top: math.div($space, 2);
             font-size: f-size(0.75);
             color: $footer-color;
             transition: $common-transition;
@@ -226,7 +223,11 @@ $space: 13px;
               height: 60%;
               margin: 0 8px;
               width: 1px;
-              background: $footer-color;
+              background: color.adjust($footer-color, $lightness: 30%);
+
+              @include dark-mode {
+                background: color.adjust($footer-color-dark, $blackness: 60%);
+              }
             }
 
             .visitors {

@@ -1,6 +1,6 @@
 import type { WatchOptions } from "vue";
-import { type AllKeys, type CommonItem, HeaderTabs, githubRepoUrl, type HeaderTabUrl, getUniqueId } from "~/utils/common";
-import { inBrowser, isDev } from "~/utils/nuxt";
+import { type AllKeys, type CommonItem, HeaderTabs, githubRepoUrl, getUniqueId } from "~/utils/common";
+import { cmtRepCateId, cmtRepId, inBrowser, isDev } from "~/utils/nuxt";
 import config from "~/config";
 
 // XXX 在mount时更新一下key，防止SSG里v-for产生的元素，在client里被vue忽略
@@ -17,7 +17,7 @@ export function useCurrentTab () {
 }
 
 export function useCommonSEOTitle (head: ComputedRef<string>, keys?: ComputedRef<string[]>) {
-  watch([head, keys], ([head, keys]) => {
+  watch([head, keys].filter(i => !!i), ([head, keys]) => {
     const title = head + config.SEO_title;
     useHead({
       title,
@@ -105,14 +105,11 @@ const updateGiscusConfig = (config: object) => {
     }
   }, "https://giscus.app");
 };
-export function useComment (key: HeaderTabUrl) {
-  const tab = key.substring(1);
-  const { cmtRepCateId, cmtRepId } = useRuntimeConfig().app;
-  const hasComment = (config.Comment as any)[tab] && cmtRepCateId && cmtRepId;
+export function useComment (hasComment: boolean) {
   const root = ref<HTMLElement>();
-  onMounted(() => {
-    if (hasComment) {
-      if (cmtRepId && cmtRepCateId) {
+  if (__NB_COMMENTING_ENABLED__) {
+    onMounted(() => {
+      if (hasComment) {
         const { themeMode } = useThemeMode();
         const getTheme = () => {
           return themeMode.value === "light" ? "light" : "dark_dimmed";
@@ -129,9 +126,9 @@ export function useComment (key: HeaderTabUrl) {
         const script = document.createElement("script");
         script.src = "https://giscus.app/client.js";
         script.setAttribute("data-repo", `${config.githubName}/${config.githubRepo}`);
-        script.setAttribute("data-repo-id", cmtRepId);
+        script.setAttribute("data-repo-id", cmtRepId!);
         script.setAttribute("data-category", "Announcements");
-        script.setAttribute("data-category-id", cmtRepCateId);
+        script.setAttribute("data-category-id", cmtRepCateId!);
         script.setAttribute("data-mapping", "pathname");
         script.setAttribute("data-strict", "0");
         script.setAttribute("data-reactions-enabled", "1");
@@ -153,8 +150,8 @@ export function useComment (key: HeaderTabUrl) {
           });
         });
       }
-    }
-  });
+    });
+  }
   return { root, hasComment };
 }
 

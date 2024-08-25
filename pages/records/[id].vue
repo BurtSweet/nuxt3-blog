@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { formatTime, useContentPage, useComment, translate, initViewer, useCommonSEOTitle } from "~/utils/nuxt";
 import { type RecordItem } from "~/utils/common";
+import Visitors from "~/utils/nuxt/public/visitors";
 
-const { item, writeDate, tabUrl, htmlContent, markdownRef } = await useContentPage<RecordItem>();
+const { item, writeDate, htmlContent, markdownRef } = await useContentPage<RecordItem>();
 useCommonSEOTitle(computed(() => `${translate("records")}: ${formatTime(item.time, "date")}`));
 
-const { root, hasComment } = useComment(tabUrl);
+const { root } = useComment(item.showComments);
 initViewer(root);
 </script>
 
@@ -22,14 +23,11 @@ initViewer(root);
         :title="img.alt"
       />
     </div>
-    <div class="text" :class="{'has-comment': hasComment}">
-      <p class="flex">
+    <div class="text" :class="{'has-comment': item.showComments}">
+      <div class="header flex">
         <writeDate />
-        <span v-if="useRuntimeConfig().app.mongoDBEnabled && Number(item.visitors) >= 0" class="visitors flex" :title="$t('visit-time', [item.visitors])">
-          <svg-icon name="view" />
-          {{ item.visitors }}
-        </span>
-      </p>
+        <Visitors :visitors="item.visitors" />
+      </div>
       <div class="article-container">
         <article ref="markdownRef" class="--markdown" v-html="htmlContent" />
       </div>
@@ -40,9 +38,8 @@ initViewer(root);
 <style lang="scss">
 .record-detail {
   margin: 30px 20px 80px;
-  width: 1000px;
 
-  .images {
+  >.images {
     display: flex;
     flex-wrap: wrap;
 
@@ -53,10 +50,10 @@ initViewer(root);
     }
   }
 
-  .text {
+  >.text {
     margin-top: 10px;
 
-    > p {
+    .header {
       border-bottom: 1px solid #b9b9b9;
 
       .visitors {
@@ -83,6 +80,7 @@ initViewer(root);
 
     >.article-container {
       padding: 8px;
+      min-height: 100px;
     }
   }
 }
