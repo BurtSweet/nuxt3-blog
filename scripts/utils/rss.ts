@@ -1,7 +1,8 @@
-import { ArticleItem, getNowDayjsString, escapeHtml } from "../../utils/common";
+import type { ArticleItem } from "../../utils/common/types";
+import { escapeHtml } from "../../utils/common/utils";
+import { getNowDayjsString } from "../../utils/common/dayjs";
 import config from "../../config";
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
 interface INode {
   addChild (_: INode): void;
   toString(): string;
@@ -12,16 +13,16 @@ class Node implements INode {
   content?: string;
   children: INode[] = [];
 
-  constructor (tag: string, content?: string) {
+  constructor(tag: string, content?: string) {
     this.tag = tag;
     this.content = content;
   }
 
-  addChild (node: INode) {
+  addChild(node: INode) {
     this.children.push(node);
   }
 
-  toString () {
+  toString() {
     if (this.children.length) {
       return `<${this.tag}>${
         this.children.map(node => node.toString()).join("\n")
@@ -31,7 +32,7 @@ class Node implements INode {
   }
 }
 
-export function genRss (json: ArticleItem[]) {
+export function genRss(json: ArticleItem[]) {
   const origin = config.domain;
   const startStr = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><rss version=\"2.0\">";
   const endStr = "</rss>";

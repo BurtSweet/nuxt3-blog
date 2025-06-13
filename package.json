@@ -3,63 +3,83 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
+    "build-for-test": "cross-env VITESTING=\"true\" nuxt build",
+    "dev-for-test": "cross-env PORT=13000 VITESTING=\"true\" nuxt dev",
+    "prod-for-test": "cross-env PORT=13000 node .output/server/index.mjs",
     "generate": "nuxt generate",
-    "chpwd": "gulp change-passwd",
-    "genimg": "gulp generate-image-map",
-    "downimg": "gulp download-image",
-    "subimg": "gulp substitute-image",
-    "lint": "eslint --fix --ext .ts,vue --ignore-path .gitignore .",
+    "local:change-pwd": "gulp change-passwd",
+    "local:generate-img-map": "gulp generate-image-map",
+    "local:download-img": "gulp download-image",
+    "local:substitute-img": "gulp substitute-image",
+    "local:upload-algolia": "gulp upload-algolia",
+    "test:unit": "vitest run --exclude ./e2e",
+    "test:e2e": "vitest run --dir ./e2e",
+    "test:prod-and-e2e": "start-server-and-test prod-for-test http://localhost:13000 test:e2e",
+    "test:dev-and-e2e": "start-server-and-test dev-for-test http://localhost:13000 test:e2e",
+    "eslint": "eslint --fix .",
     "preview": "nuxt preview",
-    "prepare": "husky install"
+    "prepare": "husky"
   },
   "dependencies": {
-    "axios": "^0.24.0",
+    "axios": "^1.7.1",
     "clipboard": "^2.0.10",
     "crypto-js": "^4.1.1",
     "dayjs": "^1.10.7",
     "headroom.js": "^0.12.0",
     "highlight.js": "^11.3.1",
     "katex": "^0.16.7",
-    "marked": "^4.2.12",
-    "monaco-editor": "^0.33.0",
+    "marked": "^15.0.1",
+    "mermaid": "^11.4.1",
+    "monaco-editor": "^0.52.0",
     "pangu": "^4.0.7",
-    "viewerjs": "^1.10.5"
+    "viewerjs": "^1.10.5",
+    "vue-router": "4"
   },
   "devDependencies": {
-    "@nuxtjs/eslint-config-typescript": "^10.0.0",
+    "@eslint/js": "^9.20.0",
+    "@nuxt/eslint": "1.0.1",
+    "@nuxt/test-utils": "^3.15.4",
+    "@nuxtjs/tailwindcss": "^6.13.1",
+    "@playwright/test": "^1.50.1",
     "@types/crypto-js": "^4.1.1",
     "@types/gulp": "^4.0.9",
     "@types/headroom.js": "^0.12.2",
     "@types/katex": "^0.16.0",
     "@types/lodash": "^4.14.182",
-    "@types/marked": "^4.0.8",
-    "@types/multiparty": "^0.0.33",
+    "@types/marked": "^5.0.1",
+    "@types/multiparty": "^4.2.1",
     "@types/pangu": "^4.0.0",
     "@types/prompts": "^2.4.4",
-    "@typescript-eslint/eslint-plugin": "^5.22.0",
-    "@typescript-eslint/parser": "^5.22.0",
+    "@vue/test-utils": "^2.4.6",
+    "algoliasearch": "^5.21.0",
+    "cheerio": "^1.0.0",
     "colors": "^1.4.0",
-    "eslint": "^8.15.0",
-    "eslint-plugin-vue": "^8.7.1",
+    "cross-env": "^7.0.3",
+    "eslint": "^9.20.1",
+    "eslint-plugin-tailwindcss": "^3.18.0",
+    "eslint-plugin-vue": "^9.32.0",
     "form-data": "^4.0.0",
-    "gulp": "^4.0.2",
-    "husky": "^7.0.0",
-    "lint-staged": "^12.4.1",
+    "gulp": "^5.0.0",
+    "happy-dom": "^17.1.0",
+    "husky": "^9.1.0",
+    "js-base64": "^3.7.7",
+    "lint-staged": "^15.4.1",
     "lodash": "^4.17.21",
-    "mongodb": "^6.0.0",
+    "lucide-vue-next": "^0.477.0",
     "nuxt": "^3.9.3",
     "postcss-html": "^1.4.1",
+    "postcss-import": "^16.1.0",
+    "postcss-nesting": "^13.0.1",
     "prompts": "^2.4.2",
     "rollup-pluginutils": "^2.8.2",
-    "sass": "^1.43.4",
-    "stylelint": "^14.8.2",
-    "stylelint-config-recommended-scss": "^6.0.0",
-    "stylelint-config-recommended-vue": "^1.4.0",
-    "stylelint-config-standard-scss": "^3.0.0",
+    "start-server-and-test": "^2.0.10",
+    "tailwind-merge": "^3.0.2",
     "tinify": "^1.7.1",
     "ts-node": "^10.9.1",
-    "typescript": "^5.1.6",
-    "vite-plugin-eslint": "^1.6.0"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.0",
+    "vite-plugin-eslint": "^1.6.0",
+    "vitest": "^3.0.5"
   },
   "husky": {
     "hooks": {
@@ -67,14 +87,12 @@
     }
   },
   "lint-staged": {
-    "*.{ts,vue}": [
-      "eslint --fix --ignore-path .gitignore --ignore-path .eslintignore"
-    ],
-    "*.{scss,vue}": [
-      "stylelint --fix --ignore-path .gitignore"
+    "*.{ts,tsx,vue}": [
+      "eslint --fix"
     ]
   },
   "engines": {
-    "node": "18.x"
-  }
+    "node": "20.x"
+  },
+  "packageManager": "pnpm@9.13.2+sha512.88c9c3864450350e65a33587ab801acf946d7c814ed1134da4a924f6df5a2120fd36b46aab68f7cd1d413149112d53c7db3a4136624cfd00ff1846a0c6cef48a"
 }

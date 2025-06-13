@@ -1,29 +1,29 @@
-import type { CommonItem } from "~/utils/common";
-import { notify, translate, devHotListen, useCurrentTab } from "~/utils/nuxt";
-import type { UpdateRebuild } from "~/vite-plugins/rebuild";
+import { translate } from "../i18n";
+import { getCurrentTab, devHotListen } from "../utils";
+import type { CommitParams, CommonItem } from "~/utils/common/types";
+import { notify } from "~/utils/nuxt/notify";
 import { rebuildEvent } from "~/vite-plugins/types";
 
-export function isAuthor (): never {
+export function isAuthor(): never {
   throw new Error("Can't do that");
 }
 
-export function createCommit (
+export function createCommit(
   _commit = "",
-  additions: { path: string; content: string }[] = [],
-  deletions: { path: string }[] = []
+  { additions, deletions }: CommitParams
 ): Promise<boolean> {
   import.meta.hot!.send(rebuildEvent, {
     additions,
     deletions
-  } as UpdateRebuild);
+  });
   return listenServer();
 }
 
-export function deleteList (
+export function deleteList(
   newList: CommonItem[],
   dels: CommonItem[]
-): Promise<boolean | void> {
-  const folder = useCurrentTab().url;
+): Promise<boolean> {
+  const folder = getCurrentTab();
   import.meta.hot!.send(rebuildEvent, {
     additions: [{
       path: `public/rebuild/json${folder}.json`,
@@ -32,11 +32,11 @@ export function deleteList (
     deletions: dels.map(item => ({
       path: `public/rebuild${folder}/${item.id}.md`
     }))
-  } as UpdateRebuild);
+  });
   return listenServer();
 }
 
-function listenServer (): Promise<boolean> {
+function listenServer(): Promise<boolean> {
   return new Promise((resolve, reject) => {
     devHotListen(rebuildEvent, (data) => {
       if (typeof data === "boolean") {

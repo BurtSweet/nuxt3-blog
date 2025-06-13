@@ -1,7 +1,8 @@
-import { translate } from "~/utils/nuxt";
-import { getLocaleByCode, getNowDayjs } from "~/utils/common";
+import { getLocaleByCode } from "../common/locales";
+import { translate } from "~/utils/nuxt/i18n";
+import { getNowDayjs } from "~/utils/common/dayjs";
 
-export function formatTime (stamp?: number, type: "full" | "date" | "month" = "full") {
+export function formatTime(stamp?: number, type: "full" | "date" | "month" = "full") {
   return computed(() => {
     const { formatFull, formatDate, formatMonth } = getLocaleByCode(useI18nCode().i18nCode.value)!;
     let format = "";
@@ -20,7 +21,7 @@ export function formatTime (stamp?: number, type: "full" | "date" | "month" = "f
   }).value;
 }
 
-export function literalTime (stamp: number) {
+export function literalTime(stamp: number) {
   const dayOld = getNowDayjs(stamp);
   const dayNew = getNowDayjs();
   const subDay = dayNew.diff(dayOld, "day");

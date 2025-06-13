@@ -1,9 +1,8 @@
 import Viewer from "viewerjs";
 import type { Ref } from "vue";
-import { inBrowser } from "~/utils/nuxt";
-import { ViewerAttr } from "~/utils/common";
+import { ViewerAttr } from "~/utils/common/constants";
 
-function useMutationObserver (
+function useMutationObserver(
   target: HTMLElement,
   callback: MutationCallback
 ) {
@@ -26,15 +25,17 @@ function useMutationObserver (
 /**
  * viewerjs
  */
-export function initViewer (el: Ref<HTMLElement | undefined>): Ref<HTMLElement> | void {
-  if (!inBrowser) { return; }
+export function initViewer(el: Ref<HTMLElement | undefined>): Ref<HTMLElement> | undefined {
+  if (!import.meta.client) {
+    return;
+  }
   let viewerContainer;
   let viewer: Viewer;
   let stop: () => void = () => undefined;
 
   onMounted(() => {
     viewer = new Viewer(el.value!, {
-      filter (image: HTMLImageElement) {
+      filter(image: HTMLImageElement) {
         return image.hasAttribute(ViewerAttr);
       }
     });

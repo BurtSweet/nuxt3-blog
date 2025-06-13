@@ -1,6 +1,6 @@
 import { createVNode, render } from "vue";
 import notification from "./common-notification.vue";
-import { NotificationContainerId } from "~/utils/common";
+import { NotificationContainerId } from "~/utils/common/constants";
 
 export type NotifyType = "success" | "warn" | "error";
 
@@ -10,7 +10,7 @@ export type NotifyOption = {
   description?: string;
 };
 
-export function notify (options: NotifyOption) {
+export function notify(options: NotifyOption) {
   const container = document.createElement("div");
   const vm = createVNode(notification, options);
   vm.props!.onDestroy = () => {

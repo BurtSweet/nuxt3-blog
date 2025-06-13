@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { createCommit } from "ls:~/utils/nuxt/manage/github";
 import type { editor as Editor } from "monaco-editor";
+import { Upload } from "lucide-vue-next";
 import configString from "~/config.ts?raw";
 import config from "~/config";
-import { inBrowser, useStatusText, translate, useCommonSEOTitle } from "~/utils/nuxt";
+import { translate } from "~/utils/nuxt/i18n";
+import { useStatusText } from "~/utils/nuxt/manage";
+import { useCommonSEOTitle } from "~/utils/nuxt/utils";
 
 useCommonSEOTitle(computed(() => translate("config-manage") + config.SEO_title));
 
@@ -12,10 +15,10 @@ const editorRef = ref<HTMLElement>();
 const inputText = ref<string>(configString);
 const modified = computed(() => inputText.value !== configString);
 
-const { statusText, canCommit, processing, toggleProcessing } = useStatusText();
+const { statusText, canCommit, processing, toggleProcessing } = useStatusText(modified);
 
 const { themeMode } = useThemeMode();
-if (inBrowser) {
+if (import.meta.client) {
   onMounted(() => {
     import("monaco-editor").then((module) => {
       editor = module.editor.create(editorRef.value!, {
@@ -40,14 +43,18 @@ if (inBrowser) {
   });
 }
 
-const doUpload = () => {
+const doUpload = async () => {
   toggleProcessing();
-  createCommit("Update config.ts", [{
-    path: "config.ts",
-    content: inputText.value
-  }]).finally(() => {
+  try {
+    await createCommit("Update config.ts", {
+      additions: [{
+        path: "config.ts",
+        content: inputText.value
+      }]
+    });
+  } finally {
     toggleProcessing();
-  });
+  }
 };
 
 onBeforeUnmount(() => {
@@ -56,42 +63,28 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="manage-config w100 flexc">
-    <div class="header flex">
-      <span>{{ !modified ? $t('not-modified') : statusText }}</span>
-      <common-button icon="upload" :disabled="!canCommit || !modified" :loading="processing" @click="doUpload">
+  <main class="flex h-full flex-col gap-2 px-2 py-4 shadow-md md:px-4">
+    <div class="flex items-center justify-end">
+      <span
+        v-show="!!statusText"
+        class="mr-4 text-xs text-red-500"
+      >{{ statusText }}</span>
+      <CommonButton
+        :icon="Upload"
+        :disabled="!canCommit || !modified"
+        :loading="processing"
+        data-testid="update-config-btn"
+        theme="primary"
+        @click="doUpload"
+      >
         {{ $t('update') }}
-      </common-button>
+      </CommonButton>
     </div>
-    <div class="editor-container w100">
-      <div ref="editorRef" class="content s100" />
+    <div class="grow border border-dark-300 dark:border-dark-600">
+      <div
+        ref="editorRef"
+        class="h-[calc(100vh_-_120px)]"
+      />
     </div>
-  </div>
+  </main>
 </template>
-
-<style lang="scss">
-.manage-config {
-  height: calc(100% - 20px);
-
-  > .header {
-    align-self: flex-end;
-    margin: 20px 0;
-
-    > span {
-      font-size: f-size(0.75);
-      margin: 0 15px 0 auto;
-      color: #b80000;
-
-      @include dark-mode {
-        color: #ffa6a6;
-      }
-    }
-  }
-
-  .editor-container {
-    background: white;
-    height: 100%;
-    box-shadow: 0 0 12px rgb(0 0 0 / 10%);
-  }
-}
-</style>

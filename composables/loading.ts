@@ -1,17 +1,24 @@
 let handle: number;
 
-export const useLoading = () => {
-  const loadingState = useState<number>("loading", () => 0);
+export const useLoadingState = () => useState<number>("loading", () => 0);
 
-  const finish = () => {
+export const useLoading = () => {
+  const loadingState = useLoadingState();
+  const finish = (addClass = true) => {
     if (handle) {
       clearInterval(handle);
     }
     loadingState.value = 0;
+    if (addClass) {
+      setTimeout(() => {
+        document.documentElement.classList.add("smooth-scroll");
+      }, 500);
+    }
   };
 
   const start = () => {
-    finish();
+    document.documentElement.classList.remove("smooth-scroll");
+    finish(false);
     handle = setInterval(() => {
       loadingState.value += 1;
       if (loadingState.value === 100) {
@@ -21,7 +28,6 @@ export const useLoading = () => {
   };
 
   return {
-    loadingState,
     start,
     finish
   };

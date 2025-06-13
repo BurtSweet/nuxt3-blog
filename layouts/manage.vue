@@ -1,112 +1,56 @@
 <script setup lang="tsx">
-import SvgIcon from "~/components/svg-icon.vue";
+import { BookOpen, CheckCheck, FileEdit, Image, ImagePlus, Key, Menu, MoonStar, Rocket, Settings, Sun, X } from "lucide-vue-next";
+import type { FunctionalComponent } from "vue";
 import NuxtLink from "~/node_modules/nuxt/dist/app/components/nuxt-link";
 import UploadImage from "~/pages/manage/comps/upload-image.vue";
-import { rmLocalStorage, setLocalStorage, translateT, isAuthor as checkIsAuthor, notify, translate, isDev, calcRocketUrl, watchUntil } from "~/utils/nuxt";
-import { GithubTokenKey, HeaderTabs } from "~/utils/common";
+import { isAuthor as checkIsAuthor } from "~/utils/nuxt/manage/github";
+import { GithubTokenKey } from "~/utils/common/constants";
+import { HeaderTabs, type HeaderTabUrl } from "~/utils/common/types";
+import { translate } from "~/utils/nuxt/i18n";
+import { rmLocalStorage, setLocalStorage } from "~/utils/nuxt/localStorage";
+import { notify } from "~/utils/nuxt/notify";
+import { calcRocketUrl, watchUntil } from "~/utils/nuxt/utils";
+import { isDev } from "~/utils/nuxt/constants";
 
-const pageLoading = useLoading();
+const inputTokenDisabled = isDev || __NB_BUILDTIME_VITESTING__;
 
-// 上传图片
-const showUploadImage = ref(false);
+const loadingState = useLoadingState();
+
 const githubToken = useGithubToken();
 const encryptor = useEncryptor();
 const isAuthor = useIsAuthor();
-const allPassed = computed(() => !!githubToken && encryptor.passwdCorrect.value);
+const { themeMode, toggleThemeMode } = useThemeMode();
+
+const IconMap = {
+  "/articles": FileEdit,
+  "/records": Image,
+  "/knowledges": BookOpen
+} as Record<HeaderTabUrl, FunctionalComponent>;
+
+const mobileMenuShow = ref(false);
+const showUploadImage = ref(false);
+const inputToken = ref(githubToken.value);
+const inputPwd = ref(encryptor.usePasswd.value);
+const showModal = ref(false);
+const checkingToken = ref(false);
 
 const activeRoute = computed(() => {
   return useRoute().path.replace(/^\/manage\//, "/");
 });
-const travel = computed(() => {
+const rocketUrl = computed(() => {
   return calcRocketUrl();
 });
-// mobile menu
-const isMobile = useIsMobile();
-const menuShow = ref<boolean>(false);
-watch(isMobile, () => {
-  setTimeout(() => {
-    menuShow.value = false;
-  });
-});
-
-const ManageMenu = defineComponent({
-  components: {
-    // eslint-disable-next-line vue/no-unused-components
-    "nuxt-link": NuxtLink,
-    "svg-icon": SvgIcon
-  },
-  render: () => (
-    <div class="manage-menu w100 flexc">
-      <ul>
-        <li>
-          <a class="upload-img-btn" onClick={() => { showUploadImage.value = true; }}>
-            { translateT("images") }
-          </a>
-        </li>
-        <li>
-          <nuxt-link
-            to='/manage/config'
-            class={{ active: activeRoute.value.startsWith("/config") }}
-          >
-            { translateT("config") }
-          </nuxt-link>
-        </li>
-        {
-          HeaderTabs.map(tab => (
-            <li key={tab.url}>
-              <nuxt-link
-                to={"/manage" + tab.url}
-                class={{ active: activeRoute.value.startsWith(tab.url) }}
-              >
-                <span>{ translateT(tab.name) }</span>
-              </nuxt-link>
-            </li>
-          ))
-        }
-      </ul>
-      <div
-        title={(!useCorrectSha().value || useNuxtApp().$sameSha.value) ? (allPassed.value ? translate("all-verified") : translate("token-and-passwd")) : translate("commit-id-not-correct")}
-        class={{ warning: useCorrectSha().value && !useNuxtApp().$sameSha.value }}
-        onClick={() => { showModal.value = true; }}
-      >
-        <svg-icon
-          class={{ invalid: !githubToken.value, active: allPassed.value }}
-          name="password"
-        />
-      </div>
-      <nuxt-link title="🚀" to={travel.value}>
-        <svg-icon name="rocket" />
-      </nuxt-link>
-      {
-        isDev &&
-      <nuxt-link title="svgs" to="/manage/all-svg" target="_blank">
-        SVG
-      </nuxt-link>
-      }
-      {
-        (pageLoading.loadingState.value && !isMobile.value)
-          ? <div>
-            <svg-icon name="loading"/>
-          </div>
-          : null
-      }
-    </div>
-  )
-});
+const allPassed = computed(() => !!githubToken && encryptor.passwdCorrect.value);
 
 // 进入manage界面后，大概率会用到encrypt，所以这里先异步加载，尚未遇到bug
 encryptor.init();
 
-const inputToken = ref<string>(githubToken.value);
 // 随时和githubToken保持一致，因为只有正确的值才会被赋给githubToken
 watch(githubToken, (token) => {
   inputToken.value = token;
 });
-const inputPwd = ref<string>(encryptor.usePasswd.value);
-const showModal = ref<boolean>(false);
-const checkingToken = ref<boolean>(false);
 
-const modalOk = () => {
+const modalOk = async () => {
   // 密码不用判断，直接修改
   encryptor.usePasswd.value = inputPwd.value;
   // 未改变token
@@ -126,28 +70,26 @@ const modalOk = () => {
     return;
   }
   checkingToken.value = true;
-  checkIsAuthor(inputToken.value)
-    .then((res) => {
-      notify({
-        title: res ? translate("token-verified") : translate("token-unverified"),
-        type: res ? "success" : "error",
-        description: res ? translate("token-saved") : undefined
-      });
-      if (res) {
-        setLocalStorage(GithubTokenKey, inputToken.value);
-        showModal.value = false;
-      }
-    })
-    .catch((e) => {
-      notify({
-        title: translate("error"),
-        type: "error",
-        description: e
-      });
-    })
-    .finally(() => {
-      checkingToken.value = false;
+  try {
+    const res = await checkIsAuthor(inputToken.value);
+    notify({
+      title: res ? translate("token-verified") : translate("token-unverified"),
+      type: res ? "success" : "error",
+      description: res ? translate("token-saved") : undefined
     });
+    if (res) {
+      setLocalStorage(GithubTokenKey, inputToken.value);
+      showModal.value = false;
+    }
+  } catch (e) {
+    notify({
+      title: translate("error"),
+      type: "error",
+      description: String(e)
+    });
+  } finally {
+    checkingToken.value = false;
+  }
 };
 
 onMounted(() => {
@@ -160,30 +102,118 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="manage-background" />
-  <div class="manage-container">
-    <nav>
-      <span class="mobile-menu-toggler" @click="menuShow = true">
-        <svg-icon :name="pageLoading.loadingState.value ? 'loading' : 'menu'" />
-      </span>
-      <manage-menu v-show="!isMobile" />
-      <div v-show="isMobile">
-        <common-dropdown v-model:show="menuShow">
-          <manage-menu />
-        </common-dropdown>
-      </div>
-    </nav>
-    <section>
-      <div>
+  <span
+    v-show="!!loadingState"
+    class="fixed left-0 top-0 z-headerLoading h-0.5 bg-primary-500"
+    :style="{ width: `${loadingState}%` }"
+  />
+
+  <div class="flex items-stretch">
+    <aside
+      :class="twMerge(
+        'h-screen md:sticky inset-y-0 left-0 z-20 shadow-lg transition duration-300 ease-in-out',
+        'max-md:fixed max-md:w-screen',
+        mobileMenuShow ? 'max-md:bg-dark-500/30' : 'max-md:pointer-events-none'
+      )"
+      @click.self="mobileMenuShow = false"
+    >
+      <nav
+        :class="twMerge(
+          'h-full w-fit bg-white px-4 dark:bg-dark-800 max-md:mr-auto transition duration-300 ease-in-out',
+          !mobileMenuShow && 'max-md:-translate-x-full'
+        )"
+      >
+        <div class="flex items-center justify-between py-1 text-dark-500 dark:text-dark-300 md:justify-center">
+          <button
+            :class="twMerge(
+              'icon-button'
+            )"
+            @click="toggleThemeMode"
+          >
+            <MoonStar v-if="themeMode === 'light'" />
+            <Sun v-else />
+          </button>
+          <button
+            :class="twMerge(
+              'md:hidden px-2 py-1 rounded-lg pointer-events-auto',
+              !mobileMenuShow ? 'max-md:translate-x-12 bg-white dark:bg-dark-800 shadow-md' : 'bg-dark-50 dark:bg-dark-700'
+            )"
+            @click="mobileMenuShow = !mobileMenuShow"
+          >
+            <component
+              :is="mobileMenuShow ? X : Menu"
+              class="size-5"
+            />
+          </button>
+        </div>
+        <div class="my-1 space-y-1 border-y border-dark-200 py-3 dark:border-dark-700">
+          <NuxtLink
+            v-for="item in HeaderTabs"
+            :key="item"
+            :to="`/manage${item}`"
+            :class="twMerge($style.menuItem, activeRoute.startsWith(item) && $style.menuItemActive)"
+          >
+            <component :is="IconMap[item]" />
+            {{ $t(item) }}
+          </NuxtLink>
+          <NuxtLink
+            to="/manage/config"
+            :class="twMerge($style.menuItem, activeRoute.startsWith('/config') && $style.menuItemActive)"
+          >
+            <Settings />
+            {{ $t('config') }}
+          </NuxtLink>
+        </div>
+
+        <div class="pt-2">
+          <div class="flex justify-between gap-4 px-2 py-4">
+            <NuxtLink
+              :to="rocketUrl"
+              :class="twMerge('anim-shake', $style.menuAction)"
+              title="🚀"
+            >
+              <Rocket />
+            </NuxtLink>
+
+            <button
+              :class="$style.menuAction"
+              :title="$t('images')"
+              @click="showUploadImage = true"
+            >
+              <ImagePlus />
+            </button>
+
+            <button
+              :class="twMerge(
+                $style.menuAction,
+                !$sameSha?.value && '!text-orange-400',
+                !githubToken && '!text-red-400',
+                allPassed && '!text-green-400'
+              )"
+              :title="$sameSha?.value ? (allPassed ? $t('all-verified') : $t('token-and-passwd')) : $t('commit-id-not-correct')"
+              data-testid="show-token-password-btn"
+              @click="showModal = true"
+            >
+              <Key />
+            </button>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <div class="min-h-screen flex-1 overflow-hidden">
+      <div class="mx-auto size-full max-w-[1440px] rounded-lg p-4 *:rounded-lg *:bg-white *:shadow-md *:dark:bg-dark-800 max-md:p-1">
         <client-only>
-          <nuxt-page />
+          <slot />
         </client-only>
       </div>
-    </section>
+    </div>
   </div>
+
   <common-modal
     v-model="showModal"
     :loading="checkingToken"
+    test-id="token-password-confirm"
     @confirm="modalOk"
     @cancel="inputToken = githubToken"
   >
@@ -191,271 +221,58 @@ onMounted(() => {
       Token & Password
     </template>
     <template #body>
-      <label class="manage-input-pwd">
-        <b>Github Token
-          <svg-icon v-if="!!githubToken" name="correct" />
-        </b>
-        <input v-model="inputToken" :placeholder="$t('please-input')" data-focus :disabled="isDev">
+      <label class="flex flex-col">
+        <span class="mb-1 flex gap-1.5">Github Token
+          <CheckCheck
+            v-if="!!githubToken"
+            class="size-5 text-primary-600"
+          />
+        </span>
+        <input
+          v-model="inputToken"
+          :placeholder="$t('please-input')"
+          data-focus
+          :disabled="inputTokenDisabled"
+        >
       </label>
-      <label class="manage-input-pwd">
-        <b>
-          {{ $T('passwd') }}
-          <svg-icon v-if="encryptor.passwdCorrect.value" name="correct" />
-        </b>
-        <input v-model="inputPwd" :placeholder="$t('please-input')">
+      <label class="mt-4 flex flex-col">
+        <span class="mb-1 flex gap-1.5">
+          {{ $t('passwd') }}
+          <CheckCheck
+            v-if="encryptor.passwdCorrect.value"
+            class="size-5 text-primary-600"
+          />
+        </span>
+        <input
+          v-model="inputPwd"
+          data-testid="password-input"
+          :placeholder="$t('please-input')"
+        >
       </label>
     </template>
   </common-modal>
+
   <upload-image v-model="showUploadImage" />
 </template>
 
-<style lang="scss">
-$menu-width: 120px;
+<style module>
+.menuItem {
+  @apply flex items-center rounded-md px-3 py-2.5 text-base font-medium text-dark-700 dark:text-dark-300;
 
-.manage-container {
-  $padding-left: 20px;
-
-  > nav {
-    position: fixed;
-    left: $padding-left;
-    top: 20px;
-    z-index: 3;
-    width: $menu-width - $padding-left;
-
-    >.mobile-menu-toggler {
-      display: none;
-    }
-
-    .common-dropdown {
-      background: transparent;
-      box-shadow: none;
-      border: none;
-      width: $menu-width - $padding-left;
-    }
-  }
-
-  > section {
-    position: absolute;
-    z-index: 2;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-
-    > div {
-      $left: $menu-width + $padding-left;
-
-      height: 100%;
-      width: 100%;
-      padding: 0 30px 0 $left;
-
-      > div {
-        padding-bottom: 20px;
-      }
-    }
+  svg {
+    @apply mr-3 size-5;
   }
 }
 
-.manage-background {
-  position: fixed;
-  z-index: 1;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #fbfbfb;
-
-  @include dark-mode {
-    background: $background-dark;
-  }
+.menuItem:hover, .menuItemActive{
+  @apply bg-primary-50 text-primary-700 dark:bg-dark-700 dark:text-primary-400;
 }
 
-.manage-menu {
-  ul {
-    padding: 10px 0;
-    width: 100%;
-    box-shadow: 0 0 14px rgb(0 0 0 / 36%);
-    list-style: none;
-    background: #525252;
-    overflow: hidden;
-    border-radius: 2px;
+.menuAction {
+  @apply rounded-full flex items-center justify-center size-10 text-dark-500 dark:text-dark-300 bg-dark-50 dark:bg-dark-700 hover:bg-dark-100 hover:dark:bg-dark-900 hover:text-primary-600 dark:hover:text-primary-500;
 
-    @include dark-mode {
-      box-shadow: 0 0 14px rgb(107 107 107 / 36%);
-      background: #202020;
-    }
-
-    li {
-      .upload-img-btn {
-        cursor: cell;
-      }
-
-      a {
-        display: block;
-        text-align: center;
-        padding: 10px 0;
-        font-size: f-size(1);
-        text-decoration: none;
-        color: rgb(255 255 255);
-        transition: $common-transition;
-        position: relative;
-
-        &::before {
-          position: absolute;
-          z-index: 1;
-          content: "";
-          display: block;
-          height: 100%;
-          width: 2px;
-          background: white;
-          left: 0;
-          top: 0;
-          opacity: 0;
-          transition: $common-transition;
-
-          @include dark-mode {
-            background: rgb(202 202 202);
-          }
-        }
-
-        &:hover {
-          background: #6f6f6f;
-        }
-
-        &.active {
-          background: $theme-color;
-
-          &::before {
-            opacity: 1;
-          }
-        }
-      }
-    }
-  }
-
-  > div,
-  > a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    @include square(40px);
-
-    border-radius: 50%;
-    background: white;
-    box-shadow: 0 0 10px rgb(0 0 0 / 40%);
-    margin-top: 18px;
-    cursor: pointer;
-    transition: $common-transition;
-    text-decoration: none;
-    font-size: f-size(0.8);
-    color: $theme-color-darken;
-    font-weight: bold;
-
-    @include dark-mode {
-      background: rgb(235 235 235);
-    }
-
-    &:hover {
-      transform: scale(1.1);
-    }
-
-    &.warning {
-      background: rgb(255 255 153);
-    }
-
-    > svg {
-      @include square(24px);
-
-      &.active {
-        fill: #00ad15;
-      }
-
-      &.invalid {
-        fill: red;
-      }
-    }
-
-    img {
-      border-radius: 50%;
-
-      @include square(80%);
-    }
-  }
-
-  >.loading {
-    margin-top: 20px;
-
-    >svg {
-      fill: $theme-color;
-
-      @include square(40px);
-    }
-  }
-}
-
-.manage-input-pwd {
-  display: flex;
-  flex-direction: column;
-
-  &:first-of-type {
-    margin-bottom: 25px;
-  }
-
-  b {
-    margin-bottom: 6px;
-    font-size: f-size(0.8);
-    display: flex;
-    align-items: center;
-
-    > svg {
-      @include square(15px);
-
-      margin-left: 6px;
-      fill: #06f;
-    }
-  }
-
-  input {
-    font-size: f-size(0.85);
-    padding: 6px;
-  }
-}
-
-@include mobile {
-  .manage-container {
-    > nav {
-      top: 48px;
-      left: 2%;
-
-      >div > .loading {
-        display: none;
-      }
-
-      >.mobile-menu-toggler {
-        display: flex;
-        background: white;
-        position: absolute;
-        left: 0;
-        top: 0;
-        transform: translateY(-110%);
-        border-radius: 50%;
-        box-shadow: 0 0 10px rgb(0 0 0 / 30%);
-        opacity: 0.8;
-
-        >svg {
-          @include square(36px);
-
-          fill: #0087ff;
-        }
-      }
-    }
-
-    > section > div {
-      padding-left: 2%;
-      padding-right: 2%;
-      padding-top: 20px;
-    }
+  svg {
+    @apply size-5;
   }
 }
 </style>

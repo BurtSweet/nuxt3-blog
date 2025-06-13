@@ -1,13 +1,14 @@
-import { initScrollTrigger, SvgContainerId, NotificationContainerId, ModalContainerId } from "~/utils/common";
+import { NotificationContainerId, ModalContainerId, ThemeModeKey, I18nStoreKey } from "~/utils/common/constants";
+import { initScrollTrigger } from "~/utils/common/scroll-event";
+import { getLocalStorage } from "~/utils/nuxt/localStorage";
 
-export default defineNuxtPlugin(() => {
+export default defineNuxtPlugin((app) => {
   initScrollTrigger();
-  // init theme
-  document.body.setAttribute(
-    "code-theme",
-    localStorage.getItem("code-theme") || "light"
-  );
-  document.documentElement.classList.add(`${useThemeMode().themeMode.value}-mode`);
+
+  app.hook("app:suspense:resolve", () => {
+    useThemeMode().themeMode.value = getLocalStorage(ThemeModeKey) || "light";
+    useI18nCode().changeI18n(getLocalStorage(I18nStoreKey) || useI18nCode().i18nCode.value);
+  });
 
   const fragment = new DocumentFragment();
 
@@ -19,21 +20,5 @@ export default defineNuxtPlugin(() => {
   modalContainer.id = ModalContainerId;
   fragment.appendChild(modalContainer);
 
-  const svgContainer = document.createElement("div");
-  svgContainer.id = SvgContainerId;
-  svgContainer.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-  svgContainer.setAttribute(
-    "style",
-    "position: absolute; width: 0; height: 0;overflow: hidden"
-  );
-  fragment.appendChild(svgContainer);
-
   document.body.appendChild(fragment);
-  return {
-    provide: {
-      sameSha: computed(() => {
-        return useCorrectSha().value === useRuntimeConfig().app.NUXT_ENV_CURRENT_GIT_SHA;
-      })
-    }
-  };
 });

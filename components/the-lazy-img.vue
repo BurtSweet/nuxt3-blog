@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import type { StyleValue, PropType, CSSProperties } from "vue";
-import { ViewerAttr, addScrollListener, rmScrollListener } from "~/utils/common";
-import { isPrerender, watchUntil } from "~/utils/nuxt";
+import { Loader2, CircleX } from "lucide-vue-next";
+import { ViewerAttr } from "~/utils/common/constants";
+import { addScrollListener, rmScrollListener } from "~/utils/common/scroll-event";
+import { isPrerender } from "~/utils/nuxt/constants";
+import { watchUntil } from "~/utils/nuxt/utils";
 
 const props = defineProps({
   src: { type: String, required: true },
@@ -14,7 +17,7 @@ const props = defineProps({
   /** 内部图片样式 */
   imgStyle: { type: String, default: "" },
   /** 加载错误时的大小 */
-  errSize: { type: Object as PropType<{height: string, width: string}|null>, default: null },
+  errSize: { type: Object as PropType<{ height: string; width: string } | null>, default: null },
   /** 显示“点击重试”按钮 */
   retry: { type: Boolean, default: true },
   title: { type: String, default: "" }
@@ -52,27 +55,27 @@ const containerStyle = computed<StyleValue>(() => {
   // 图片在视图外 | 图片出错 | 图片加载中，使用containerSize
   return props.containerSize
     ? {
-      width: props.containerSize[0],
-      height: props.containerSize[1]
-    } as CSSProperties
+        width: props.containerSize[0],
+        height: props.containerSize[1]
+      } as CSSProperties
     : "";
 });
 
 const root = ref<HTMLElement>();
 
-function containerClick () {
+function containerClick() {
   if (props.retry && imgState.value === "error") {
     imgState.value = "loading";
   }
 }
-function loadFinish (error: boolean) {
+function loadFinish(error: boolean) {
   if (isEncryptedImg.value) {
     return;
   }
   imgState.value = error ? "error" : "loaded";
 }
 let watchEncrypt: ReturnType<typeof watch> | null = null;
-function refreshView () {
+function refreshView() {
   if (isBlankSrc.value) {
     return;
   }
@@ -95,11 +98,11 @@ function refreshView () {
     const contractY = root.value!.getBoundingClientRect().y - winHeight;
     const contractX = root.value!.getBoundingClientRect().x - winWidth;
     if ((
-      contractY < 0 &&
-      contractY > -winHeight - height.value &&
-      contractX < 0 &&
-      contractX > -winWidth - width.value) ||
-      props.noLazy
+      contractY < 0
+      && contractY > -winHeight - height.value
+      && contractX < 0
+      && contractX > -winWidth - width.value)
+    || props.noLazy
     ) {
       // outerView -> loading
       imgState.value = "loading";
@@ -146,16 +149,37 @@ const attr = ViewerAttr;
 <template>
   <span
     ref="root"
-    class="--lazy-img"
     :style="containerStyle"
-    :class="{ loading: isImgLoading, err: isImgErr }"
+    :class="twMerge(
+      'relative inline-flex overflow-hidden',
+      isImgErr && 'cursor-pointer'
+    )"
     :title="title"
     @click="containerClick"
   >
-    <img v-if="isPrerender && !isEncryptedImg" :src="props.src" :alt="alt">
-    <span v-if="isImgErr || isImgLoading" class="svg flexc s100">
-      <svg-icon :name="isImgErr ? 'img-error' : 'loading'" />
-      <span v-show="retry && isImgErr" class="tips">{{ useNuxtApp().$t('click-to-retry') }}</span>
+    <img
+      v-if="isPrerender && !isEncryptedImg"
+      :src="props.src"
+      :alt="alt"
+    >
+    <span
+      v-if="isImgErr || isImgLoading"
+      class="absolute left-0 top-0 flex size-full flex-col items-center justify-center bg-white/40"
+    >
+      <CircleX
+        v-if="isImgErr"
+        class="size-6 text-red-500"
+      />
+      <Loader2
+        v-else
+        class="size-6 animate-spin text-dark-600"
+      />
+      <span
+        v-show="retry && isImgErr"
+        class="text-xs text-red-500"
+      >
+        {{ useNuxtApp().$t('click-to-retry') }}
+      </span>
     </span>
     <img
       v-if="isShowImg"
@@ -169,33 +193,3 @@ const attr = ViewerAttr;
     >
   </span>
 </template>
-
-<style lang="scss">
-.--lazy-img {
-  overflow: hidden;
-  position: relative;
-  display: inline-flex;
-
-  &.err {
-    cursor: pointer;
-  }
-
-  .svg {
-    background: rgba(#fff, 0.5);
-    justify-content: center;
-    position: absolute;
-    top: 0;
-    left: 0;
-
-    svg {
-      @include square(30px);
-    }
-  }
-
-  .tips {
-    font-size: f-size(0.65);
-    height: f-size(0.65);
-    color: #f44;
-  }
-}
-</style>

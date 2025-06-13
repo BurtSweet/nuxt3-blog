@@ -1,78 +1,52 @@
 <script setup lang="tsx">
-import type Headroom from "headroom.js";
+import { Languages, Sun, MoonStar, Rocket, Menu, Rss, Key, Search } from "lucide-vue-next";
+import Headroom from "headroom.js";
+import tailwindConfig from "#tailwind-config";
 import NuxtLink from "~/node_modules/nuxt/dist/app/components/nuxt-link";
-import { inBrowser, isPrerender, calcRocketUrl, translateT, useHackKey } from "~/utils/nuxt";
-import { i18nLocales, githubRepoUrl, type I18nCode, HeaderTabs } from "~/utils/common";
 import config from "~/config";
+import { i18nLocales, type I18nCode } from "~/utils/common/locales";
+import { HeaderTabs } from "~/utils/common/types";
+import { calcRocketUrl } from "~/utils/nuxt/utils";
 
-const hackKey = useHackKey();
+const algoliaEnabled = __NB_ALGOLIA_ENABLED__;
+
 const { i18nCode, changeI18n } = useI18nCode();
 const { themeMode, toggleThemeMode } = useThemeMode();
-const pageLoading = useLoading();
+const loadingState = useLoadingState();
+
 const route = useRoute();
-const activeRoute = computed(() => {
-  return route.path.split("/")[1] || HeaderTabs[0].url.substring(1);
-});
-const footerDomain = inBrowser ? window.location.hostname : "";
-
-// mobile menu
-const isMobile = useIsMobile();
-const menuShow = ref<boolean>(false);
-watch(isMobile, () => {
-  setTimeout(() => {
-    menuShow.value = false;
-  });
-});
-const LayoutMenu = defineComponent({
-  // XXX why need?
-  components: {
-    "nuxt-link": NuxtLink
-  },
-  render: () =>
-    <div class={`layout-menu flex ${isMobile.value ? "in-mobile" : ""}`}>
-      {
-        HeaderTabs.map(item => (
-          <nuxt-link
-            key={item.url}
-            class={{ item: true, active: activeRoute.value === item.url.substring(1) }}
-            to={item.url}
-          >
-            { translateT(item.name) }
-            <span />
-            <span />
-            <span />
-            <span />
-          </nuxt-link>
-        ))
-      }
-    </div>
+const mobileMenuShow = ref(false);
+watch(() => route.path, () => {
+  mobileMenuShow.value = false;
 });
 
-const showI18n = ref<boolean>(false);
+const themeAnimate = ref(false);
+const footerDomain = ref("");
+
+const showI18n = ref(false);
 const setLocale = (locale: I18nCode) => {
   changeI18n(locale);
   showI18n.value = false;
 };
 
-const inAbout = computed(() => {
-  return route.path.startsWith("/about");
-});
+const toggleTheme = () => {
+  themeAnimate.value = true;
+  nextTick(() => {
+    toggleThemeMode();
+  });
+};
 
-const openEdit = computed(() => {
+const rocketUrl = computed(() => {
   return calcRocketUrl();
 });
-
-const toggleTheme = () => {
-  toggleThemeMode();
-  isFirst.value = false;
-};
 
 let headroom: undefined | Headroom;
 const headerRef = ref();
 onMounted(async () => {
-  const Headroom = (await import("headroom.js")).default;
+  footerDomain.value = window.location.hostname;
+
   headroom = new Headroom(headerRef.value, {
-    offset: 48
+    offset: parseInt(tailwindConfig.theme.spacing.header.replace("px", ""))
   });
   headroom.init();
 });
@@ -83,582 +57,309 @@ onBeforeUnmount(() => {
 const encryptor = useEncryptor();
 const showPwdModal = ref(false);
 const inputPwd = ref(encryptor.usePasswd.value);
-const isFirst = ref(true);
 </script>
 
 <template>
-  <div id="default-layout" :class="{'in-about': inAbout, 'no-margin': route.path === '/records'}">
-    <div v-if="!isPrerender" class="mode-bg" :class="[themeMode, {active: !isFirst}]" />
-    <nav id="header" ref="headerRef" class="flex w100">
-      <del class="space-left" />
-      <span class="mobile-menu-toggler" :class="{active: menuShow}" @click="menuShow = true">
-        <svg-icon name="menu" />
-      </span>
-      <layout-menu v-show="!isMobile" />
-      <div v-show="isMobile">
-        <common-dropdown v-model:show="menuShow" wrap-class="menu-dropdown">
-          <layout-menu />
-        </common-dropdown>
-      </div>
-      <del class="stretch" />
-      <a class="i18n" @click="showI18n = true">
-        <svg-icon name="i18n" />
-        <common-dropdown v-model:show="showI18n">
-          <div class="i18n-select">
-            <div
-              v-for="locale of i18nLocales"
-              :key="locale.code + hackKey"
-              :class="{ active: i18nCode===locale.code}"
-              @click="setLocale(locale.code)"
+  <div class="m-auto flex min-h-screen flex-col">
+    <div
+      :class="twMerge(
+        'fixed z-modeBg size-0 rounded-full right-12 top-6',
+        themeMode === 'dark' ? $style.themeAnimateBgDark : $style.themeAnimateBgLight,
+        themeAnimate && $style.themeAnimateBg
+      )"
+    />
+    <nav
+      ref="headerRef"
+      :class="$style.nav"
+    >
+      <div class="container mx-auto flex h-header items-center justify-between px-4 max-md:px-2 lg:px-8">
+        <NuxtLink
+          class="group shrink-0"
+          to="/about"
+        >
+          <span class="hidden pr-1 text-sm group-hover:inline">{{ $t('about') }}</span>
+          <span class="text-xl font-medium text-primary-700 drop-shadow hover:text-primary-500 dark:text-primary-300 dark:hover:text-primary-500">{{ config.nickName }}</span>
+        </NuxtLink>
+        <div :class="$style.pcMenu">
+          <NuxtLink
+            v-for="item in HeaderTabs"
+            :key="item"
+            :to="item"
+          >
+            {{ $t(item) }}
+          </NuxtLink>
+        </div>
+        <div class="flex items-center gap-4 max-md:gap-2">
+          <NuxtLink
+            v-if="algoliaEnabled"
+            class="icon-button max-md:hidden"
+            :title="$t('search-all')"
+            to="/search"
+          >
+            <Search />
+          </NuxtLink>
+          <button
+            class="icon-button relative !overflow-visible"
+            @click="showI18n = true"
+          >
+            <Languages />
+            <common-dropdown
+              v-model:show="showI18n"
+              wrap-class="mt-2"
             >
-              {{ locale.name }}
+              <div>
+                <client-only>
+                  <div
+                    v-for="locale of i18nLocales"
+                    :key="locale.code"
+                    :class="twMerge(
+                      $style.i18nSelect,
+                      i18nCode === locale.code && $style.i18nSelectActive
+                    )"
+                    @click="setLocale(locale.code)"
+                  >
+                    {{ locale.name }}
+                  </div>
+                </client-only>
+              </div>
+            </common-dropdown>
+          </button>
+          <button
+            :class="twMerge(
+              'icon-button',
+              $style.themeMode,
+              themeMode === 'dark' && $style.modeDark
+            )"
+            :title="$t('switch-mode', [$t(`mode-${themeMode === 'light' ? 'dark' : 'light'}`)])"
+            @click="toggleTheme"
+          >
+            <span :class="themeAnimate && $style.themeAnimateToggle">
+              <MoonStar class="size-5" />
+              <Sun class="size-5" />
+            </span>
+          </button>
+          <div :class="$style.goManage">
+            <NuxtLink
+              :to="rocketUrl"
+              title="🚀"
+              class="icon-button anim-shake"
+            >
+              <Rocket />
+            </NuxtLink>
+            <div
+              :class="twMerge($style.pwd, encryptor.passwdCorrect.value && $style.pwdValid)"
+              :title="$t('passwd')"
+              @click="showPwdModal = true"
+            >
+              <span>
+                <Key />
+              </span>
             </div>
           </div>
-        </common-dropdown>
-      </a>
-      <sub />
-      <a
-        v-if="!isPrerender"
-        class="mode"
-        :class="themeMode"
-        :title="$t('switch-mode', [$t(`mode-${themeMode === 'light' ? 'dark' : 'light'}`)])"
-        @click="toggleTheme"
-      >
-        <span>
-          <svg-icon name="mode-dark" />
-          <svg-icon name="mode-light" />
-        </span>
-      </a>
-      <sub />
-      <a
-        v-if="openEdit === githubRepoUrl"
-        class="home flex"
-        target="_blank"
-        :href="githubRepoUrl"
-        title="Go to Github"
-      >
-        <svg-icon name="github" />
-      </a>
-      <div v-else class="home go-manage flex">
-        <nuxt-link :to="openEdit" title="🚀">
-          <svg-icon name="rocket" />
-        </nuxt-link>
-        <div class="pwd flex" :class="{valid: encryptor.passwdCorrect.value}" :title="$t('passwd')" @click="showPwdModal = true">
-          <svg-icon name="password" />
+          <span
+            class="icon-button !hidden max-md:!flex"
+            @click="mobileMenuShow = !mobileMenuShow"
+          >
+            <Menu />
+          </span>
         </div>
       </div>
-      <sub />
-      <nuxt-link class="about" :to="inAbout ? '/' : '/about'" :title="$t('about')">
-        <img class="s100" src="/icon.png" :alt="$t('avatar')">
-      </nuxt-link>
+
+      <div
+        v-show="mobileMenuShow"
+        :class="$style.mobileMenu"
+      >
+        <NuxtLink
+          v-for="item in HeaderTabs"
+          :key="item"
+          :to="item"
+        >
+          {{ $t(item) }}
+        </NuxtLink>
+        <NuxtLink
+          v-if="algoliaEnabled"
+          class="icon-button !w-full"
+          :title="$t('search-all')"
+          to="/search"
+        >
+          <Search />
+        </NuxtLink>
+      </div>
     </nav>
-    <span v-show="!!pageLoading.loadingState.value" class="loading" :style="{width: `${pageLoading.loadingState.value}%`}" />
-    <section id="body">
+    <span
+      v-show="!!loadingState"
+      class="fixed left-0 top-0 z-headerLoading h-0.5 bg-primary-500"
+      :style="{ width: `${loadingState}%` }"
+    />
+    <section class="z-body min-h-[calc(100vh_-_64px)] pt-header">
       <slot />
     </section>
-    <footer id="footer" class="flex w100">
-      <div class="middle flexc">
-        <span>Copyright (c) 2019-2025 <b><a target="_blank" :href="'https://github.com/'+config.githubName">{{ config.nickName }}</a> | {{ footerDomain }}</b></span>
-        <span class="flex"><a class="rss" target="_blank" href="/sitemap.xml" title="rss">RSS <svg-icon name="rss" /></a>| Powered By <a class="nuxt" href="https://github.com/yunyuyuan/nuxt3-blog" target="_blank">nuxt3-blog</a></span>
+    <footer :class="$style.footer">
+      <div class="mx-auto flex flex-col items-center gap-1">
+        <span>Copyright (c) 2019-2025 <b><a
+          target="_blank"
+          :href="'https://github.com/'+config.githubName"
+        >{{ config.nickName }}</a> | {{ footerDomain }}</b></span>
+        <span class="flex"><a
+          target="_blank"
+          href="/sitemap.xml"
+          title="rss"
+        >RSS <Rss class="size-4" /></a>| Powered By <a
+          href="https://github.com/yunyuyuan/nuxt3-blog"
+          target="_blank"
+        >nuxt3-blog</a></span>
       </div>
     </footer>
-    <common-modal v-model="showPwdModal" @confirm="encryptor.usePasswd.value = inputPwd;showPwdModal = false">
+
+    <common-modal
+      v-model="showPwdModal"
+      @confirm="encryptor.usePasswd.value = inputPwd;showPwdModal = false"
+    >
       <template #title>
-        {{ $T('passwd') }}
+        {{ $t('passwd') }}
       </template>
       <template #body>
-        <input v-model="inputPwd" data-focus :placeholder="$t('input-passwd')" style="font-size: 16px;padding: 5px;width: calc(100% - 12px);">
+        <input
+          v-model="inputPwd"
+          data-focus
+          :placeholder="$t('input-passwd')"
+          class="w-full"
+        >
       </template>
     </common-modal>
   </div>
 </template>
 
-<style lang="scss">
-#default-layout {
-  $circle-w: calc(200vw * 1.5);
-  $circle-h: calc(200vh * 1.5);
-
-  margin: 0 20%;
-
-  &.no-margin {
-    margin: 0;
+<style module>
+@keyframes light-dark {
+  0% {
+    @apply size-0 bg-nb-light;
   }
 
-  @include mobile {
-    margin: auto;
-  }
+  100% {
+    @apply bg-nb-dark;
 
-  @keyframes light-dark {
-    0% {
-      background: $background;
-      width: 0;
-      height: 0;
-    }
-
-    100% {
-      background: $background-dark;
-      width: $circle-w;
-      height: $circle-h;
-    }
-  }
-
-  @keyframes dark-light {
-    0% {
-      background: $background-dark;
-      width: 0;
-      height: 0;
-    }
-
-    100% {
-      background: $background;
-      width: $circle-w;
-      height: $circle-h;
-    }
-  }
-
-  >.mode-bg {
-    position: fixed;
-    z-index: $z-index-mode-bg;
-    width: 0;
-    height: 0;
-    top: math.div($header-height, 2);
-    right: 50px;
-    border-radius: 50%;
-
-    &.active {
-      animation-duration: $animation-duration * 2;
-      animation-timing-function: $animation-function;
-      animation-fill-mode: forwards;
-      transform: translate(50%, -50%);
-
-      &.light {
-        animation-name: dark-light;
-      }
-
-      &.dark {
-        animation-name: light-dark;
-      }
-    }
-  }
-
-  >.loading {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 3px;
-    z-index: $z-index-header-loading;
-    background: $theme-color;
-    transition: width 0.1s linear;
-    box-shadow: 0 0 10px $theme-color;
+    width: calc(200vw * 1.5);
+    height: calc(200vh * 1.5);
   }
 }
 
-#header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: $header-height;
-  background: #303947;
-  box-shadow: 0 0 8px #4c4c4c8e;
-  z-index: $z-index-header;
-  transition: $common-transition;
-
-  @include dark-mode {
-    box-shadow: 0 0 8px rgb(15 15 15 / 56%);
+@keyframes dark-light {
+  0% {
+    @apply size-0 bg-nb-dark;
   }
 
-  del.space-left {
-    margin-left: 12px;
+  100% {
+    @apply bg-nb-light;
+
+    width: calc(200vw * 1.5);
+    height: calc(200vh * 1.5);
+  }
+}
+
+.themeAnimateBg {
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0, 0, 0, 1);
+  animation-fill-mode: forwards;
+  transform: translate(50%, -50%);
+}
+
+.themeAnimateBgLight {
+  animation-name: dark-light;
+}
+
+.themeAnimateBgDark {
+  animation-name: light-dark;
+}
+
+.nav {
+  @apply fixed w-full z-header max-md:!transform-none;
+  @apply shadow max-md:!shadow transition bg-white dark:bg-dark-800;
+
+  &:global(:not(.headroom--pinned).headroom--not-top) {
+    @apply shadow-none -translate-y-full;
+  }
+}
+
+.mobileMenu {
+  @apply flex flex-col mt-2 mb-4 px-4 md:hidden;
+
+  a {
+    @apply flex items-center font-medium pl-2 py-2 rounded text-base text-dark-800 dark:text-dark-200 hover:bg-dark-200 dark:hover:bg-dark-700 hover:text-primary-700;
+  }
+}
+
+.pcMenu {
+  @apply flex max-md:hidden gap-10;
+
+  a {
+    @apply -mb-[4px] font-medium flex flex-col items-center gap-[3px] text-lg text-dark-800 dark:text-dark-200 hover:text-primary-700 dark:hover:text-primary-400 after:block after:h-[2px] after:w-[120%] after:bg-transparent after:transition hover:after:bg-primary-700;
+  }
+}
+
+.i18nSelect{
+  @apply rounded-lg cursor-pointer px-4 py-2 text-sm text-dark-600 dark:text-dark-300 hover:bg-primary-100 dark:hover:bg-primary-900 transition;
+}
+.i18nSelectActive {
+  @apply text-primary-700 dark:text-primary-500;
+}
+
+.themeMode {
+  @apply overflow-hidden block;
+
+  > span {
+    @apply flex flex-col items-center justify-around w-full h-[200%];
+  }
+}
+
+.themeAnimateToggle {
+  transition: all 0.2s cubic-bezier(0, -0.01, 0.23, 1.56);
+}
+
+.modeDark {
+  span {
+    transform: translateY(-50%);
+  }
+}
+
+.goManage {
+  @apply relative flex items-center justify-center;
+
+  > a {
+    @apply relative flex justify-center overflow-visible;
   }
 
-  .mobile-menu-toggler {
-    display: none;
+  &:hover .pwd {
+    transform: translateY(100%) scaleY(100%);
   }
+}
 
-  .layout-menu {
-    &.in-mobile {
-      box-shadow: 0 0 10px #3c3c3c8a;
+.pwd {
+  @apply absolute bottom-0 origin-top transition;
+  @apply before:content-[''] before:block before:w-full before:h-3;
 
-      @include dark-mode {
-        box-shadow: 0 0 10px #b4b4b48a;
-      }
-    }
+  transform: translateY(100%) scaleY(0);
 
-    .item {
-      $padding: 2px;
-
-      color: white;
-      text-decoration: none;
-      transition: $common-transition;
-      position: relative;
-      font-weight: bold;
-      padding: 2px 5px;
-      word-break: keep-all;
-      cursor: pointer;
-      font-size: f-size(1.3);
-
-      &:not(:first-of-type) {
-        margin-left: 16px;
-      }
-
-      span {
-        position: absolute;
-        background: white;
-
-        $offset: 4px;
-
-        transition: $common-transition;
-
-        &:nth-child(1) {
-          height: 1px;
-          width: 0;
-          top: -$padding;
-          left: -$padding;
-          transform: translateX(-$offset);
-        }
-
-        &:nth-child(2) {
-          width: 1px;
-          height: 0;
-          top: -$padding;
-          left: -$padding;
-          transform: translateY(-$offset);
-        }
-
-        &:nth-child(3) {
-          height: 1px;
-          width: 0;
-          bottom: -$padding;
-          right: -$padding;
-          transform: translateX($offset);
-        }
-
-        &:nth-child(4) {
-          width: 1px;
-          height: 0;
-          bottom: -$padding;
-          right: -$padding;
-          transform: translateY($offset);
-        }
-      }
-
-      &:not(.active):hover {
-        text-shadow: 0 0 10px #fff;
-
-        span {
-          $size: calc(100% + #{$padding * 3});
-
-          &:nth-child(1) {
-            width: $size;
-          }
-
-          &:nth-child(2) {
-            height: $size;
-          }
-
-          &:nth-child(3) {
-            width: $size;
-          }
-
-          &:nth-child(4) {
-            height: $size;
-          }
-        }
-      }
-
-      &.active {
-        background: #f6fbff;
-        color: #303947;
-      }
-    }
-  }
-
-  del.stretch {
-    margin: auto;
-  }
-
-  .i18n,
-  .mode,
-  .home,
-  .about {
-    @include square(28px);
-
-    transition: $common-transition;
-  }
-
-  .i18n,
-  .mode,
-  .home {
-    cursor: pointer;
-    height: $header-height;
-
-    &:hover {
-      svg {
-        fill: white;
-      }
-    }
-  }
-
-  .i18n {
-    display: flex;
-    justify-content: center;
-
-    .i18n-select {
-      div {
-        padding: 8px 16px;
-        cursor: pointer;
-        font-size: f-size(0.85);
-
-        &:hover,
-        &.active {
-          color: $theme-color-darken;
-
-          @include dark-mode {
-            color: $theme-color-lighten;
-          }
-        }
-      }
-    }
-  }
-
-  .mode {
-    overflow: hidden;
-
-    > span {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      transition: all $animation-duration cubic-bezier(0, -0.01, 0.23, 1.56);
-
-      svg {
-        flex-shrink: 0;
-      }
-    }
-
-    &.dark {
-      > span {
-        transform: translateY(-100%);
-      }
-    }
-  }
-
-  .go-manage {
-    position: relative;
-    display: flex;
-    justify-content: center;
-
-    >a {
-      height: 100%;
-    }
-
-    div.pwd {
-      cursor: pointer;
-      overflow: hidden;
-      justify-content: center;
-      background: white;
-      box-shadow: 0 0 10px rgb(0 0 0 / 20%);
-      border-radius: 8px;
-      padding: 8px 20px;
-      position: absolute;
-      bottom: 0;
-      transition: $common-transition;
-      transform-origin: top;
-      transform: translateY(100%) scaleY(0);
-      border: 1px solid transparent;
-
-      @include dark-mode {
-        background: $background-dark;
-        border-color: rgb(186 186 186);
-        box-shadow: 0 0 16px rgb(0 0 0 / 30%);
-
-        svg {
-          fill: white;
-        }
-      }
-
-      svg {
-        fill: rgb(0 0 0);
-
-        @include square(20px);
-      }
-
-      &.valid {
-        svg {
-          fill: $theme-color-darken;
-        }
-      }
-    }
-
-    &:hover {
-      div.pwd {
-        transform: translateY(100%) scaleY(100%);
-      }
-    }
+  span {
+    @apply overflow-hidden flex items-center border border-dark-200 dark:border-dark-800 bg-white dark:bg-dark-800 cursor-pointer shadow-md px-4 py-2 rounded-lg;
   }
 
   svg {
-    fill: #d3d3d3;
-
-    @include square;
-  }
-
-  sub {
-    width: 1px;
-    height: 50%;
-    background: white;
-    margin: 0 12px;
-  }
-
-  .about {
-    margin-right: 10px;
-    position: relative;
-    opacity: 0.85;
-
-    img {
-      position: relative;
-      border-radius: 2px;
-    }
-
-    &:hover {
-      opacity: 1;
-    }
-  }
-
-  &:not(.headroom--pinned).headroom--not-top {
-    transform: translateY(-100%);
-    box-shadow: none;
+    @apply text-dark-700 dark:text-dark-300 size-4;
   }
 }
 
-#footer {
-  height: $footer-height;
-  position: relative;
-  z-index: $z-index-footer;
-
-  .middle {
-    font-size: f-size(0.6);
-    color: #7c7c7c;
-
-    @include dark-mode {
-      color: rgb(194 194 194);
-    }
-
-    margin: auto;
-    transition: $common-transition;
-
-    b {
-      transition: $common-transition;
-    }
-
-    span:last-of-type {
-      margin: 6px 0;
-    }
+.pwdValid {
+  svg {
+    @apply text-primary-700 dark:text-primary-500;
   }
+}
 
-  &:hover {
-    .middle {
-      color: black;
-    }
-  }
+.footer {
+  @apply pb-4 relative z-footer text-sm text-dark-600 dark:text-dark-400;
 
   a {
-    color: #1c1c1c;
-
-    @include dark-mode {
-      color: white;
-
-      &:hover {
-        color: $theme-color-lighten;
-      }
-    }
-
-    transition: $common-transition;
-
-    &:hover {
-      color: $theme-color;
-    }
-  }
-
-  .nuxt {
-    margin-left: 5px;
-  }
-
-  .rss {
-    display: inline-flex;
-    align-items: center;
-    margin-right: 5px;
-    transition: $common-transition;
-    fill: $theme-color;
-
-    svg {
-      width: 16px;
-      height: 16px;
-      margin-left: 5px;
-    }
-
-    &:hover {
-      transform: scale(1.1);
-    }
+    @apply mx-1 text-primary-700 hover:text-primary-500 dark:text-primary-500 hover:dark:text-primary-600 inline-flex items-center gap-1;
   }
 }
-
-@media screen and (min-width: 768px) and (max-width: 1100px) {
-  #default-layout {
-    margin: 0 10%;
-  }
-}
-
-@include mobile {
-  #default-layout {
-    margin: auto;
-  }
-
-  #header {
-    .mobile-menu-toggler {
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-
-      &.active {
-        background: white;
-      }
-
-      svg {
-        fill: $theme-color-lighten;
-
-        @include square;
-      }
-    }
-
-    .common-dropdown.menu-dropdown {
-      background: none;
-      border: none;
-      left: 12px;
-    }
-
-    .layout-menu {
-      flex-direction: column;
-      align-items: stretch;
-      background: #303947;
-      padding: 10px;
-      border-radius: 10px;
-      transform-origin: top;
-      transition: $common-transition;
-
-      .item {
-        margin-left: 0 !important;
-        text-align: center;
-
-        &:not(:last-of-type) {
-          margin-bottom: 8px;
-        }
-      }
-    }
-  }
-}
-
 </style>

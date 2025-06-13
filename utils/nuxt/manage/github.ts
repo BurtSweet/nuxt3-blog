@@ -1,16 +1,18 @@
-import type { Axios } from "axios";
-import type { CommonItem } from "~/utils/common";
-import { useCurrentTab, translate, formatTime, notify, createCommitModal } from "~/utils/nuxt";
+import axios from "axios";
+import { encode } from "js-base64";
+import { formatTime } from "../format-time";
+import { translate } from "../i18n";
+import { notify } from "../notify";
+import { getCurrentTab } from "../utils";
+import { createCommitModal } from ".";
 import config from "~/config";
+import type { CommitParams, CommonItem } from "~/utils/common/types";
 
-let axios: Axios | null = null;
-
-async function post (data: string, token_?: string) {
+async function post(data: string, token_?: string) {
   const token = token_ || useGithubToken().value;
   if (!token) {
     throw new Error(translate("need-token"));
   }
-  axios = axios || (await import("axios")).default;
   return await axios.post(
     "https://api.github.com/graphql",
     { query: data },
@@ -22,12 +24,12 @@ async function post (data: string, token_?: string) {
   );
 }
 
-function encodeB64 (str: string) {
-  return btoa(unescape(encodeURIComponent(str)));
+function encodeB64(str: string) {
+  return encode(str);
 }
 
 /** @description 是否管理员 */
-export async function isAuthor (token: string): Promise<boolean> {
+export async function isAuthor(token: string): Promise<boolean> {
   const result = await post(
     `query {
     viewer {
@@ -58,7 +60,7 @@ export async function isAuthor (token: string): Promise<boolean> {
       // token 验证成功
       useGithubToken().value = token;
       // 更新 commit id
-      useCorrectSha().value = result.data.data.repository.defaultBranchRef.target.history.nodes[0].oid;
+      useRemoteLatestSha().value = result.data.data.repository.defaultBranchRef.target.history.nodes[0].oid;
     }
     return verified;
   }
@@ -71,25 +73,28 @@ export async function isAuthor (token: string): Promise<boolean> {
  * @param deletions 删除内容
  * @returns 是否执行成功，失败会自动notify
  */
-export async function createCommit (
+export async function createCommit(
   commit = "",
-  additions: { path: string; content: string }[] = [],
-  deletions: { path: string }[] = []
+  { additions, deletions }: CommitParams
 ): Promise<boolean> {
-  const correctSha = useCorrectSha().value;
+  const correctSha = useRemoteLatestSha().value;
+  if (__NB_BUILDTIME_VITESTING__) {
+    await post(JSON.stringify({ additions, deletions }));
+    return true;
+  }
   if (!useNuxtApp().$sameSha.value && !(await createCommitModal())) {
     throw new Error("Interrupt by user");
   }
   let add = "";
   let del = "";
-  if (additions.length) {
+  if (additions?.length) {
     add = "additions: [";
     additions.forEach((item) => {
       add += `{path: "${item.path}",contents: "${encodeB64(item.content)}"},`;
     });
     add += "],";
   }
-  if (deletions.length) {
+  if (deletions?.length) {
     del = "deletions: [";
     deletions.forEach((item) => {
       del += `{path: "${item.path}"},`;
@@ -151,23 +156,25 @@ export async function createCommit (
  * @param dels 删除的CommonItem[]
  * @returns 是否执行成功
  */
-export function deleteList (
+export function deleteList(
   newList: CommonItem[],
   dels: CommonItem[]
-): Promise<boolean | void> {
-  const commitInfo =
-    dels.length === 1 ? `'${dels[0].id}'` : `${dels.length} items`;
-  const folder = useCurrentTab().url;
+): Promise<boolean> {
+  const commitInfo
+    = dels.length === 1 ? `'${dels[0].id}'` : `${dels.length} items`;
+  const folder = getCurrentTab();
   return createCommit(
     `Delete ${commitInfo} from ${folder}`,
-    [
-      {
-        path: `public/rebuild/json${folder}.json`,
-        content: JSON.stringify(newList)
-      }
-    ],
-    dels.map(item => ({
-      path: `public/rebuild${folder}/${item.id}.md`
-    }))
+    {
+      additions: [
+        {
+          path: `public/rebuild/json${folder}.json`,
+          content: JSON.stringify(newList)
+        }
+      ],
+      deletions: dels.map(item => ({
+        path: `public/rebuild${folder}/${item.id}.md`
+      }))
+    }
   );
 }

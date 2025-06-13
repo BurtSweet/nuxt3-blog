@@ -1,9 +1,11 @@
 import { createVNode, render } from "vue";
-import { type CommonItem, type AllKeys, type HeaderTabUrl, ModalContainerId } from "~/utils/common";
-import { getLocalStorage, setLocalStorage, assignItem, translate, translateT, useCurrentTab, notify } from "~/utils/nuxt";
+import type { CommonItem, RecordItem } from "~/utils/common/types";
+import { translate } from "~/utils/nuxt/i18n";
 import CommonModal from "~/components/common-modal.vue";
+import { escapeNewLine } from "~/utils/common/utils";
+import { ModalContainerId } from "~/utils/common/constants";
 
-export function randomId (exist: CommonItem[] = []) {
+export function randomId(exist: CommonItem[] = []) {
   const ids = exist.map(item => item.id);
   let len = ids.length ? Math.max(...ids).toString().length : 4;
   if (ids.length > 10 ** (len - 1) * 0.6) {
@@ -23,114 +25,67 @@ export function randomId (exist: CommonItem[] = []) {
   }
 }
 
-/**
- * 是否可执行操作，以及提示信息
- */
-export function useStatusText () {
-  const status = ref<string>("");
+export function useStatusText(modifiedRef?: Readonly<Ref<boolean>>, decryptedRef?: Readonly<Ref<boolean>>) {
+  const processing = ref(false);
   const toggleProcessing = () => {
-    status.value = status.value ? "" : translate("performing-request");
+    processing.value = !processing.value;
   };
-  const processing = computed(() => !!status.value);
 
-  const githubToken = useGithubToken();
-  const statusText = computed<string>((): string => {
-    if (!useGithubToken().value) {
+  const canCommit = computed(() => Boolean(useGithubToken().value));
+
+  const statusText = computed((): string => {
+    if (!canCommit.value) {
       return translate("please-input-token-first");
     }
-    return status.value;
+
+    if (decryptedRef && !decryptedRef.value) {
+      return translate("need-decrypt");
+    }
+
+    return (!modifiedRef || modifiedRef.value)
+      ? (processing.value ? translate("performing-request") : "")
+      : translate("not-modified");
   });
-  const canCommit = computed<boolean>(() => !!githubToken.value);
   return { toggleProcessing, processing, statusText, canCommit };
 }
 
-/**
- * item的所有 `可处理` key
- */
-export function keysOfCommonItem (): AllKeys[] {
-  let keys: AllKeys[] = [];
-  try {
-    // 在跳转路由时，触发了监听，但是已经找不到target了
-    switch (useCurrentTab().url as HeaderTabUrl) {
-      case "/articles":
-        keys = ["title", "tags"];
-        break;
-      case "/records":
-        keys = ["images"];
-        break;
-      case "/knowledges":
-        keys = ["title", "type", "summary", "link", "cover"];
-        break;
-    }
-    return [...keys, "showComments", "encrypt"];
-  } catch {
-    return [];
-  }
-}
-
-/**
- * 草稿功能
- */
-export function loadOrDumpDraft (key: string, type: "load" | "dump", item: CommonItem, inputContent?: string): string | void {
-  if (type === "load") {
-    const draft = JSON.parse(getLocalStorage(key)!);
-    const content = draft.content ?? "";
-    delete draft.content;
-    assignItem(item, draft);
-    notify({
-      title: translate("draft-loaded")
-    });
-    return content;
-  } else {
-    const result = {
-      content: inputContent
-    };
-    for (const k of keysOfCommonItem()) {
-      result[k] = item[k];
-    }
-    setLocalStorage(key, JSON.stringify(result));
-    notify({
-      title: translate("draft-saved")
-    });
-  }
-}
-
-/**
- * 是否有改动
- */
-export function useHasModified<T extends CommonItem> ({ item, origin }: { item: T, origin: T, }) {
-  const markdownModified = ref(false);
-  const keys = keysOfCommonItem();
-  // 目前只有tag和images这几种简单数据，可以直接进行比较
-  const hasModified = computed(() => markdownModified.value || keys
-    .filter(k => typeof item[k] !== "undefined")
-    .some((k) => {
-      if (k === "images") {
-        return JSON.stringify(item[k].map(img => ({ ...img, id: 0 }))) !== JSON.stringify(origin[k].map(img => ({ ...img, id: 0 })));
+export function compareItem<T extends CommonItem>(item1: T, item2: T) {
+  const keys = Object.keys(item1) as (keyof T)[];
+  let diff = false;
+  for (const k of keys) {
+    const value1 = item1[k];
+    const value2 = item2[k];
+    if (k === "images") {
+      if (JSON.stringify((value1 as RecordItem["images"]).map(img => ({ ...img, id: 0 })))
+        !== JSON.stringify((value2 as RecordItem["images"]).map(img => ({ ...img, id: 0 })))) {
+        diff = true;
       }
-      return typeof item[k] === "object"
-        ? JSON.stringify(item[k]) !== JSON.stringify(origin[k])
-        : item[k] !== origin[k];
-    }));
-  return { hasModified, markdownModified };
+    } else if (typeof value1 === "object") {
+      if (JSON.stringify(value1) !== JSON.stringify(value2)) {
+        diff = true;
+      }
+    } else if (value1 !== value2) {
+      diff = true;
+    }
+  }
+  return !diff;
 }
-
 /**
  * 比较markdown
  */
-export function compareMd (s1: string, s2: string) {
-  return s1 === s2;
+export function compareMd(s1: string, s2: string) {
+  return escapeNewLine(s1).trim() === escapeNewLine(s2).trim();
 }
 
 /**
  * commit id 不一致
  */
-export function createCommitModal () {
+export function createCommitModal() {
   return new Promise<boolean>((resolve) => {
     const container = document.createElement("div");
     const vm = createVNode(CommonModal, {
       modelValue: true,
-      modalTitle: translateT("warning"),
+      modalTitle: translate("warning"),
       modalContent: translate("commit-id-not-correct-confirm")
     });
     vm.props!.onOk = () => {
@@ -148,7 +103,3 @@ export function createCommitModal () {
       .appendChild(container.firstElementChild!);
   });
 }
-
-export * from "./detail";
-export * from "./list";
-export * from "./github";

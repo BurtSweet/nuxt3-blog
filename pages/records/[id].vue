@@ -1,95 +1,68 @@
 <script setup lang="ts">
-import { formatTime, useContentPage, useComment, translate, initViewer, useCommonSEOTitle } from "~/utils/nuxt";
-import { type RecordItem } from "~/utils/common";
-import Visitors from "~/utils/nuxt/public/visitors";
+import type { RecordItem } from "~/utils/common/types";
+import { formatTime } from "~/utils/nuxt/format-time";
+import { translate } from "~/utils/nuxt/i18n";
+import { useContentPage } from "~/utils/nuxt/public/detail";
+import { Visitors, Comments, WroteDate } from "~/utils/nuxt/public/components";
+import { useCommonSEOTitle } from "~/utils/nuxt/utils";
+import { initViewer } from "~/utils/nuxt/viewer";
 
-const { item, writeDate, htmlContent, markdownRef } = await useContentPage<RecordItem>();
+const { item, htmlContent, markdownRef } = await useContentPage<RecordItem>();
 useCommonSEOTitle(computed(() => `${translate("records")}: ${formatTime(item.time, "date")}`));
 
-const { root } = useComment(item.showComments);
+const root = ref<HTMLElement>();
 initViewer(root);
 </script>
 
 <template>
-  <div ref="root" class="record-detail">
-    <div class="images">
-      <the-lazy-img
-        v-for="img,idx in item.images"
-        :key="idx"
-        viewer
-        :alt="img.alt"
-        :src="img.src"
-        :container-size="['300px', '300px']"
-        :title="img.alt"
-      />
-    </div>
-    <div class="text" :class="{'has-comment': item.showComments}">
-      <div class="header flex">
-        <writeDate />
-        <Visitors :visitors="item.visitors" />
+  <main
+    ref="root"
+    class="container mx-auto grow px-4 py-8 max-md:px-1 max-md:py-4"
+  >
+    <article class="mx-auto max-w-4xl overflow-hidden rounded-xl bg-white shadow-sm dark:bg-dark-800">
+      <div class="px-6 max-md:px-3">
+        <div class="my-8 grid grid-cols-1 items-start gap-6 max-md:my-4 md:grid-cols-2">
+          <the-lazy-img
+            v-for="img, idx in item.images"
+            :key="idx"
+            :class="$style.img"
+            viewer
+            :alt="img.alt"
+            :src="img.src"
+            :title="img.alt"
+          />
+        </div>
+
+        <article
+          ref="markdownRef"
+          :class="twMerge('--markdown', 'my-16 max-w-full')"
+          v-html="htmlContent"
+        />
+
+        <div class="border-t border-dark-100 py-6 dark:border-dark-700">
+          <div class="flex items-center space-x-4 text-sm text-dark-500 dark:text-dark-400">
+            <WroteDate :item="item" />
+            <Visitors :visitors="item._visitors" />
+          </div>
+        </div>
       </div>
-      <div class="article-container">
-        <article ref="markdownRef" class="--markdown" v-html="htmlContent" />
-      </div>
+    </article>
+
+    <div
+      v-if="item.showComments"
+      class="mx-auto mt-6 max-w-4xl overflow-hidden rounded-xl bg-white p-4 shadow-sm dark:bg-dark-800 max-md:px-2"
+    >
+      <Comments />
     </div>
-  </div>
+  </main>
 </template>
 
-<style lang="scss">
-.record-detail {
-  margin: 30px 20px 80px;
+<style module>
+.img {
+  @apply rounded-lg shadow min-h-12;
 
-  >.images {
-    display: flex;
-    flex-wrap: wrap;
-
-    img {
-      margin: 0 10px 10px 0;
-      max-width: 600px;
-      max-height: 300px;
-    }
-  }
-
-  >.text {
-    margin-top: 10px;
-
-    .header {
-      border-bottom: 1px solid #b9b9b9;
-
-      .visitors {
-        margin-left: auto;
-        font-size: f-size(0.75);
-        color: rgb(54 54 54);
-
-        @include dark-mode {
-          color: rgb(221 221 221);
-        }
-
-        svg {
-          margin-right: 5px;
-          fill: rgb(54 54 54);
-
-          @include dark-mode {
-            fill: white;
-          }
-
-          @include square(15px);
-        }
-      }
-    }
-
-    >.article-container {
-      padding: 8px;
-      min-height: 100px;
-    }
-  }
-}
-
-@include mobile {
-  .record-detail {
-    width: 96%;
-    margin-left: 2%;
-    margin-right: 2%;
+  img {
+    @apply object-contain transition-transform duration-500 hover:scale-105;
   }
 }
 </style>

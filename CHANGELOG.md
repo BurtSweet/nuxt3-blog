@@ -1,3 +1,26 @@
+## 2025.04.13
+* Add 小黑盒 cube stickers.
+
+## 2025.03.22
+* Add Algolia search.
+* Support random theme color.
+
+## 2025.03.16
+* Migrate mongodb atlas to cloudflare D1.
+
+## 2025.03.09
+* Add [mermaid](https://mermaid.js.org/) markdown syntax.
+
+## 2025.03.08
+* Migrate to tailwindcss, remove SASS.
+
+## 2025.03.02
+* Refactor hooks.
+* Add testing.
+
+## 2025.02.15
+* Update all npm packages.
+
 ## 2024.07.23
 * Add **text-with-mask** markdown syntax.
 

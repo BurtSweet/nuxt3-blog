@@ -1,158 +1,183 @@
 <script setup lang="ts" generic="T extends CommonItem">
 import { deleteList } from "ls:~/utils/nuxt/manage/github";
-import { type CommonItem } from "~/utils/common";
-import { formatTime, useStatusText, useManageList } from "~/utils/nuxt";
-
-const { targetTab, list, originList, customFilter } = await useManageList<T>();
+import { Lock, Plus, Search, Trash2 } from "lucide-vue-next";
+import type { CommonItem } from "~/utils/common/types";
+import { useStatusText } from "~/utils/nuxt/manage";
+import { useManageList } from "~/utils/nuxt/manage/list";
+import { formatTime } from "~/utils/nuxt/format-time";
 
 const props = defineProps<{
-  colPrefix: string;
-  registryFilter?:(_: (_: (_: T) => boolean) => void) => void,
-  searchFn:(_item: T, _search: string) => boolean;
+  filterFn: (item: T, search: string) => boolean;
 }>();
 
-if (props.registryFilter) {
-  props.registryFilter(customFilter);
-}
+const { targetTab, list, originList, decryptedList } = await useManageList<T>();
 
-const slots = useSlots();
-const header = Object.keys(slots).filter(
-  key => !key.startsWith("_") && !key.includes("filter")
-);
+const searchValue = ref("");
 
-const searchValue = ref<string>("");
 const searchedList = computed(() => {
-  return list.filter((item) => {
-    return props.searchFn(item, searchValue.value);
+  return decryptedList.value.filter((item) => {
+    return props.filterFn(item, searchValue.value);
   });
 });
 
-// 新建
-const newItem = () => {
-  navigateTo((`/manage${targetTab.url}/new`));
-};
+const slots = defineSlots<Record<string, (_: { item: T; dataUrl: string; key: any }) => void>>();
+const header = Object.keys(slots).filter(
+  key => !key.startsWith("_")
+);
 
-// 删除
 const showConfirmModal = ref<boolean>(false);
 const selectedList = reactive<CommonItem[]>([]);
 
-// status
 const { statusText, canCommit, processing, toggleProcessing } = useStatusText();
 
 watch([list, searchValue], () => {
   selectedList.splice(0, selectedList.length);
 });
 
-function changeSelect (item: CommonItem) {
+const newListToUpdate = computed(() => originList.filter(item =>
+  selectedList.find(selected => selected.id === item.id) === undefined
+));
+
+const changeSelect = (item: CommonItem) => {
   if (selectedList.includes(item)) {
     selectedList.splice(selectedList.indexOf(item), 1);
   } else {
     selectedList.push(item);
   }
-}
-function deleteSelect () {
+};
+
+const deleteSelect = async () => {
   showConfirmModal.value = false;
   toggleProcessing();
-  const newList = originList.filter((item) => {
-    return (
-      selectedList.find(selected => selected.id === item.id) === undefined
-    );
-  });
-  deleteList(newList, selectedList).finally(() => {
+  try {
+    await deleteList(newListToUpdate.value, selectedList);
+  } finally {
     toggleProcessing();
-  });
-}
+  }
+};
 </script>
 
 <template>
-  <div class="manage-list-head flex">
-    <input v-model="searchValue" :placeholder="$T('input-text-to-search')">
-    <div v-if="slots.filter" class="filter flex">
-      <slot name="filter" />
+  <main class="p-4 max-md:px-2">
+    <div class="overflow-hidden">
+      <div class="flex flex-wrap items-center gap-2 pb-2">
+        <div class="relative grow md:max-w-sm">
+          <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+            <Search class="size-5 text-dark-400" />
+          </div>
+          <input
+            v-model="searchValue"
+            type="text"
+            class="w-full pl-10"
+            :placeholder="$t('input-text-to-search')"
+          >
+        </div>
+
+        <div class="ml-auto flex items-center">
+          <span
+            v-show="!!statusText"
+            class="ml-auto mr-4 text-xs text-red-500"
+          >{{ statusText }}</span>
+
+          <div class="flex items-center gap-3">
+            <NuxtLink :to="`/manage${targetTab}/new`">
+              <CommonButton
+                :icon="Plus"
+                theme="primary"
+                :disabled="!canCommit"
+              >
+                {{ $t('new') }}
+              </CommonButton>
+            </NuxtLink>
+            <CommonButton
+              :icon="Trash2"
+              theme="danger"
+              :disabled="!canCommit || !selectedList.length"
+              :loading="processing"
+              data-testid="list-delete-btn"
+              @click="showConfirmModal = true"
+            >
+              {{ $t('del') }}
+            </CommonButton>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 overflow-x-auto">
+        <table class="min-w-full border-collapse divide-y divide-dark-200 border border-dark-300 dark:divide-dark-700 dark:border-dark-600">
+          <thead>
+            <tr>
+              <th :class="twMerge($style.th, 'max-md:hidden')">
+                ID
+              </th>
+              <th
+                v-for="head in header"
+                :key="head"
+                :class="$style.th"
+              >
+                {{ $t(head) }}
+              </th>
+              <th :class="$style.th">
+                {{ $t('date') }}
+              </th>
+              <th :class="twMerge($style.th, 'max-md:hidden')">
+                {{ $t('encrypted') }}
+              </th>
+              <th :class="$style.th">
+                {{ $t('select') }}
+              </th>
+            </tr>
+          </thead>
+          <tbody
+            data-testid="list-items"
+            class="divide-y divide-dark-200 bg-white dark:divide-dark-700 dark:bg-dark-800"
+          >
+            <tr
+              v-for="item, idx in searchedList"
+              :key="item.id"
+              class="transition-colors hover:bg-dark-50 dark:hover:bg-dark-700"
+            >
+              <td :class="twMerge($style.td, 'max-md:hidden')">
+                {{ item.id }}
+              </td>
+              <slot
+                v-for="key, idx1 in header"
+                :key="idx1"
+                :name="key"
+                :item="item"
+                :data-url="`/manage${targetTab}/${item.id}`"
+              />
+              <td :class="twMerge($style.td, 'break-all')">
+                {{ formatTime(item.time, 'date') }}
+              </td>
+              <td :class="twMerge($style.td, 'max-md:hidden')">
+                <Lock
+                  v-if="item.encrypt"
+                  class="mr-1 size-4"
+                />
+              </td>
+              <td :class="$style.td">
+                <CommonCheckbox
+                  :checked="selectedList.includes(item)"
+                  :test-id="`list-item-check-${idx}`"
+                  @change="changeSelect(item)"
+                />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
-    <del style="margin: 0 auto;" />
-    <span class="status">{{ statusText }}</span>
-    <common-button class="add-item" icon="add" @click="newItem">
-      {{ $T('new') }}
-    </common-button>
-    <common-button
-      icon="delete"
-      theme="danger"
-      :disabled="!canCommit || !selectedList.length"
-      :loading="processing"
-      @click="showConfirmModal = true"
-    >
-      {{ $T('del') }}
-    </common-button>
-  </div>
-  <ul class="manage-list-table">
-    <li class="list-head">
-      <div class="col col-id">
-        ID
-      </div>
-      <div
-        v-for="head in header"
-        :key="head"
-        class="col"
-        :class="['col-' + head, colPrefix + head]"
-      >
-        {{ $T(head) }}
-      </div>
-      <div class="col col-time">
-        {{ $T('date') }}
-      </div>
-      <div class="col col-lock">
-        {{ $T('encrypted') }}
-      </div>
-      <div class="col col-check">
-        {{ $T('select') }}
-      </div>
-    </li>
-    <div v-if="!searchedList.length" class="flex empty">
-      {{ $t('nothing-here') }}
-    </div>
-    <li
-      v-for="item in searchedList"
-      v-show="item._show"
-      :key="item.id"
-      class="list-body"
-    >
-      <div class="col col-id">
-        {{ item.id }}
-      </div>
-      <div
-        v-for="key in header"
-        :key="key"
-        class="col"
-        :class="['col-' + key, colPrefix + key]"
-      >
-        <slot
-          :name="key"
-          :data="item[key]"
-          :data-url="`/manage${targetTab.url}/${item.id}`"
-        />
-      </div>
-      <div class="col col-time">
-        <span>{{ formatTime(item.time) }}</span>
-      </div>
-      <div class="col col-lock" :title="item.encrypt ? $t('has-encrypted') : undefined">
-        <svg-icon v-if="item.encrypt" name="lock" />
-      </div>
-      <div class="col col-check">
-        <common-checkbox
-          :checked="selectedList.includes(item)"
-          @change="changeSelect(item)"
-        />
-      </div>
-    </li>
-  </ul>
+  </main>
+
   <common-modal
     v-model="showConfirmModal"
     confirm-theme="danger"
+    test-id="confirm-list-delete"
     @confirm="deleteSelect"
   >
     <template #title>
-      {{ $T('confirm-delete') }}
+      {{ $t('confirm-delete') }}
     </template>
     <template #body>
       <p v-html="$t('selected-items', [selectedList.length])" />
@@ -160,198 +185,12 @@ function deleteSelect () {
   </common-modal>
 </template>
 
-<style lang="scss">
-.manage-list-head,
-.manage-list-table {
-  max-width: 1200px;
+<style module>
+.th {
+  @apply px-4 py-3 text-left text-sm font-medium break-keep sticky top-0 tracking-wider text-dark-500 dark:text-dark-300 bg-dark-50 dark:bg-dark-700;
 }
 
-.manage-list-head {
-  margin: 0 auto 10px;
-  padding-top: 30px;
-
-  input {
-    padding: 7px;
-    font-size: f-size(0.8);
-    width: 288px;
-  }
-
-  > .filter {
-    margin-left: 8px;
-    font-size: f-size(0.75);
-    flex-wrap: wrap;
-
-    &::before {
-      content: "筛选：";
-    }
-  }
-
-  > span {
-    font-size: f-size(0.75);
-    margin: 0 15px 0 0;
-    color: #b80000;
-
-    @include dark-mode {
-      color: #ffa6a6;
-    }
-  }
-
-  > .add-item {
-    margin: 0 12px 0 0;
-  }
-}
-
-.manage-list-table {
-  border: 1px solid #dbdbdb;
-  box-shadow: 0 0 15px #e0e0e0;
-
-  @include dark-mode {
-    border-color: rgb(95 95 95);
-    box-shadow: 0 0 15px #2b2b2b;
-  }
-
-  border-radius: 4px;
-  overflow: hidden;
-  margin: 0 auto 30px;
-
-  .empty {
-    font-size: f-size(1);
-    font-weight: bold;
-    justify-content: center;
-    padding: 50px 0;
-  }
-
-  li {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: rgb(255 255 255);
-
-    @include dark-mode {
-      background: rgb(36 36 36);
-      border-color: rgb(105 105 105);
-    }
-
-    padding: 26px 30px;
-    border-radius: 2px;
-    transition: $common-transition;
-    border-bottom: 1px solid #d8d8d8;
-
-    &.list-head {
-      background: #ebebeb;
-
-      @include dark-mode {
-        background: rgb(54 54 54);
-      }
-
-      padding-top: 20px;
-      padding-bottom: 20px;
-
-      .col {
-        font-size: f-size(0.85) !important;
-        font-weight: bold !important;
-        font-style: italic;
-        color: #4c4c4c;
-
-        @include dark-mode {
-          color: white;
-        }
-      }
-    }
-
-    &.list-body:hover {
-      background: rgb(251 254 255 / 98%);
-
-      @include dark-mode {
-        background: #363636;
-      }
-    }
-
-    .col {
-      flex-grow: 0;
-      flex-shrink: 0;
-
-      a[href] {
-        color: black;
-        text-decoration: none;
-        display: block;
-
-        @include dark-mode {
-          color: white;
-        }
-
-        &:hover {
-          text-decoration: underline;
-        }
-      }
-
-      &-id {
-        flex-basis: 6%;
-        font-size: f-size(0.75);
-        font-family: $font-code;
-        font-weight: 600;
-      }
-
-      &-title {
-        a {
-          @include textoverflow;
-
-          font-weight: 500;
-        }
-      }
-
-      &-time {
-        flex-basis: 14%;
-
-        span {
-          font-size: f-size(0.7);
-          text-align: center;
-        }
-      }
-
-      &-lock,
-      &-check {
-        flex-basis: 5%;
-      }
-
-      &-lock {
-        svg {
-          @include square(15px);
-
-          @include dark-mode {
-            fill: rgb(194 194 194);
-          }
-        }
-      }
-    }
-  }
-
-  .common-loading {
-    margin: 20px 0;
-  }
-}
-
-@include mobile {
-  .manage-list-head {
-    position: relative;
-
-    input {
-      width: 128px;
-    }
-
-    >span {
-      position: absolute;
-      margin: 0;
-      right: 0;
-      top: 0;
-    }
-  }
-
-  .manage-list-table {
-    li {
-      padding-left: 7px;
-      padding-right: 7px;
-    }
-  }
+.td {
+  @apply whitespace-nowrap py-6 px-4 text-sm text-dark-500 dark:text-dark-400;
 }
 </style>

@@ -1,68 +1,61 @@
-import type { HeaderTabUrl, CommonItem, NeedsItem } from "./types";
+import type { CommonItem, HeaderTabUrl } from "./types";
 
 /**
  * 生成唯一id
  */
 let uniqueId = 0;
-export function getUniqueId (): typeof uniqueId {
+export function getUniqueId(): typeof uniqueId {
   return uniqueId++;
 }
 
 /**
  * 创建一个新item
  */
-export function createNewItem (url: HeaderTabUrl): CommonItem {
-  const baseInfo: NeedsItem = {
+export function createNewItem(url: HeaderTabUrl): CommonItem {
+  const baseInfo = {
     id: 0,
     time: 0,
     modifyTime: 0,
-    _show: true,
-    visitors: 0,
     showComments: false,
-    encrypt: false
+    encrypt: false,
+    _show: true,
+    _visitors: 0
   };
-  switch (url) {
-    case "/articles":
-      return {
-        title: "",
-        len: 0,
-        tags: [],
-        ...baseInfo
-      };
-    case "/records":
-      return {
-        images: [],
-        ...baseInfo
-      };
-    case "/knowledges":
-      return {
-        title: "",
-        summary: "",
-        link: "",
-        cover: "",
-        type: "book",
-        ...baseInfo
-      };
+
+  if (url === "/articles") {
+    return {
+      title: "",
+      len: 0,
+      tags: [],
+      ...baseInfo
+    };
+  } else if (url === "/records") {
+    return {
+      images: [],
+      ...baseInfo
+    };
+  } else {
+    return {
+      title: "",
+      summary: "",
+      link: "",
+      cover: "",
+      type: "book",
+      ...baseInfo
+    };
   }
 }
 
-export function escapeHtml (s: string) {
+export function escapeHtml(s: string, inUrl = false) {
   return s.toString()
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
+    .replace(/&/g, inUrl ? "-" : "&amp;")
+    .replace(/</g, inUrl ? "-" : "&lt;")
+    .replace(/>/g, inUrl ? "-" : "&gt;")
+    .replace(/"/g, inUrl ? "-" : "&quot;")
+    .replace(/'/g, inUrl ? "-" : "&apos;");
 }
 
 // 用在两个地方：提交时，获取时
-export function escapeNewLine (s: string) {
+export function escapeNewLine(s: string) {
   return s.replace(/\r\n/g, "\n");
-}
-
-export function toggleCodeBlockTheme (theme?: string) {
-  const body = document.body;
-  theme = theme || (body.getAttribute("code-theme") === "light" ? "dark" : "light");
-  body.setAttribute("code-theme", theme);
-  localStorage.setItem("code-theme", theme);
 }

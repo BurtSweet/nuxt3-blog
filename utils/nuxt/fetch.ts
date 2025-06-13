@@ -1,9 +1,10 @@
-import fs from "fs";
-import { type CommonItem, type HeaderTabUrl, escapeNewLine } from "~/utils/common";
-import { inBrowser } from "~/utils/nuxt";
+import { escapeNewLine } from "../common/utils";
+import type { CommonItem, HeaderTabUrl } from "~/utils/common/types";
+import { isDev, isPrerender } from "~/utils/nuxt/constants";
 
-const magicFetch = async<T = any>(path: string, transform: (_: string) => T): Promise<T | undefined> => {
-  if (inBrowser) {
+const magicFetch = async<T = any>(_path: string, transform: (_: string) => T): Promise<T | undefined> => {
+  const path = __NB_BUILDTIME_VITESTING__ ? `e2e/${_path}` : _path;
+  if (import.meta.client) {
     if (!window.NBCache) {
       window.NBCache = {};
     }
@@ -14,8 +15,8 @@ const magicFetch = async<T = any>(path: string, transform: (_: string) => T): Pr
       window.NBCache[path] = res;
       return res;
     }
-  } else {
-    return transform(fs.readFileSync("public/" + path, { encoding: "utf-8" }).toString());
+  } else if (isDev || isPrerender) {
+    return transform((await import("fs")).readFileSync("public/" + path, { encoding: "utf-8" }).toString());
   }
 };
 
@@ -28,7 +29,6 @@ export const fetchMd = async (tab: HeaderTabUrl, id: string) => {
 };
 
 declare global {
-  // eslint-disable-next-line no-unused-vars
   interface Window {
     NBCache: Record<string, any>;
   }
