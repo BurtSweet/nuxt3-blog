@@ -13,7 +13,21 @@ useCommonSEOTitle(computed(() => translate("about")));
 
 const commitSha = __NB_CURRENT_GIT_SHA__;
 const commitUrl = computed(() => `https://github.com/${config.githubName}/${__NB_GITHUB_REPO__}/commit/${commitSha}`);
-const buildTime = __NB_BUILD_TIME__;
+const originalTime = __NB_BUILD_TIME__;
+// 1. 创建 Date 对象。它内部存储的是 UTC 时间戳。
+const date = new Date(originalTime);
+// 2. 使用 Intl.DateTimeFormat 来安全地将 UTC 时间转换为目标时区（北京时间）
+const buildTime = date.toLocaleString('zh-CN', {   
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    // 关键：明确指定目标时区为北京时间（CST/UTC+8）
+    timeZone: 'Asia/Shanghai' 
+});
 
 const paragraphs = config.about;
 </script>
