@@ -28,8 +28,8 @@ export default {
   themeColorDark: "neutral", // 主题色(夜间模式)
   defaultLang: "zh", // default language, "zh" and "en" are supported currently
   about: [
-    "Hello there",
-    "Welcome to my new blog"
+   "沧浪之水清兮，可以濯我缨。",
+   "沧浪之水浊兮，可以濯我足。"
   ],
 
   /** -------------------------------------------------注意----------------------------------------------------- */
