@@ -1,14 +1,14 @@
 export default {
   /** -------------------------------------------------以下必须修改----------------------------------------------------- */
 
-  githubName: "<your-github-account-name>", // 必须修改，github账户名
+  githubName: "BurtSweet", // 必须修改，github账户名
 
   /** -------------------------------------------------以下可选修改----------------------------------------------------- */
 
-  title: "<your-blog-title>", // 网站标题
-  nickName: "<your-nickname>", // 昵称
-  domain: "https://<your-blog-domain>", // rss域名
-  SEO_title: " - <your-blog-title>", // 搜索引擎显示的标题
+  title: "G-Blog", // 网站标题
+  nickName: "妫浪吾", // 昵称
+  domain: "https://blog.kylins.eu.org/", // rss域名
+  SEO_title: "妫浪吾'blog", // 搜索引擎显示的标题
   SEO_keywords: "<your-keywords>", // keywords meta header
   MSClarityId: "", // Microsoft的Clarity统计，https://clarity.microsoft.com/
   CloudflareAnalyze: "", // cloudflare的统计，https://developers.cloudflare.com/analytics/web-analytics
@@ -28,8 +28,8 @@ export default {
   themeColorDark: "neutral", // 主题色(夜间模式)
   defaultLang: "zh", // default language, "zh" and "en" are supported currently
   about: [
-    "Hello there",
-    "Welcome to my new blog"
+   "沧浪之水清兮，可以濯我缨。",
+   "沧浪之水浊兮，可以濯我足。"
   ],
 
   /** -------------------------------------------------注意----------------------------------------------------- */

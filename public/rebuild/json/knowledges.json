@@ -1,1 +1,35 @@
-[{"title":"Test Item","summary":"I'm a test item","link":"https://github.com/yunyuyuan/nuxt3-blog","cover":"https://github.com/yunyuyuan/nuxt3-blog/blob/master/public/favicon.png?raw=true","type":"film","id":27345828,"customSlug":"test-item","time":1759475113757,"modifyTime":1759475113757,"showComments":true,"encrypt":false}]
+[
+  {
+    "title": "剑来",
+    "summary": "《剑来》集趣味性、思想性于一体的划时代大作.在这个套路漫天的时代,爽文盛行的年代难得的一部佳作.虽然继承了作者一贯的虎头蛇尾文风,双标喷人注水无数....但不能否认其立意甚好，场面宏大，人物众多，心理描写细腻.文中不时穿插一些道理让人回味无穷.     \n有幸读雪中，才知江湖皆侠气\n无知读剑来，才懂春风难得意。\n胸中一点浩然气,天地千里快哉风.",
+    "link": "https://cdn.jsdelivr.net/gh/BurtSweet/CDN/pic/博客/剑来/陈平安.jpeg",
+    "cover": "https://cdn.jsdelivr.net/gh/BurtSweet/CDN/pic/博客/剑来/陈平安.jpeg",
+    "type": "book",
+    "id": 1991,
+    "time": 1664399627656,
+    "modifyTime": 1670929527523,
+    "encrypt": false
+  },
+  {
+    "title": "怪诞行为学",
+    "summary": "说的是经济,讲的是人性.\\n杜克大学行为经济学家丹·艾瑞里将心理学引经济学的研究中，用实验的方法彻底颠覆了主流经济学的“经济人”观，告诉我们非理性是人类的本能，是主宰人类行为和决策的隐形力量；非理性不是杂乱无章的，而是可以预测和把握的。在增订部分中，针对非理性如何影响我们的日常生活和公共政策，并导致2008年金融危机，作者从行为经济学的角度出发，提出了自己独到的见解。并告诉我们如何运用“可预测的非理性”提高日常生活的幸福指数，制定出摆脱当...\"",
+    "link": "https://book.douban.com/subject/3223711/",
+    "cover": "https://pic.collins.eu.org/%E5%8D%9A%E5%AE%A2/%E6%80%AA%E8%AF%9E%E8%A1%8C%E4%B8%BA%E5%AD%A6%E5%B0%81%E9%9D%A2.jpg",
+    "type": "book",
+    "id": 7274,
+    "time": 1664399348500,
+    "modifyTime": 1689824227506,
+    "encrypt": false
+  },
+  {
+    "title": "悟空传",
+    "summary": "我要这天再遮不住我眼 我要这地再埋不了我心.\n......到头来也只是一只猴子!🐒",
+    "link": "https://book.douban.com/subject/6431994",
+    "cover": "https://cdn.jsdelivr.net/gh/BurtSweet/CDN/pic/博客/悟空传/悟空传.jpeg",
+    "type": "book",
+    "id": 8126,
+    "time": 1664399091337,
+    "modifyTime": 1681101829394,
+    "encrypt": false
+  }
+]
